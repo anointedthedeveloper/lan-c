@@ -1,0 +1,32 @@
+# Build output
+bin/
+obj/
+deskm/
+
+# VS / Rider
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Logs & app data
+*.log
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Publish profiles
+**/Properties/PublishProfiles/
+PublishProfiles/
