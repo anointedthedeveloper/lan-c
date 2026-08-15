@@ -30,3 +30,4 @@ Desktop.ini
 # Publish profiles
 **/Properties/PublishProfiles/
 PublishProfiles/
+*.exe
