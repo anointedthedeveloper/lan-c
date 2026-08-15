@@ -1,3 +1,5 @@
+using System.Reflection;
+
 namespace LanClient
 {
     public class TrayApp : ApplicationContext
@@ -10,9 +12,11 @@ namespace LanClient
 
         public TrayApp()
         {
+            var appIcon = LoadIcon();
+
             _tray = new NotifyIcon
             {
-                Icon = SystemIcons.Application,
+                Icon = appIcon ?? SystemIcons.Application,
                 Visible = true,
                 Text = "LanC Client - Searching..."
             };
@@ -53,7 +57,11 @@ namespace LanClient
         private void ShowDashboard()
         {
             if (_mainForm == null || _mainForm.IsDisposed)
+            {
                 _mainForm = new MainForm(_wsClient);
+                var icon = LoadIcon();
+                if (icon != null) _mainForm.Icon = icon;
+            }
             _mainForm.Show();
             _mainForm.BringToFront();
         }
@@ -64,6 +72,23 @@ namespace LanClient
             _discovery.Stop();
             _tray.Visible = false;
             Application.Exit();
+        }
+
+        private static Icon? LoadIcon()
+        {
+            try
+            {
+                var asm  = Assembly.GetExecutingAssembly();
+                var name = asm.GetManifestResourceNames()
+                              .FirstOrDefault(n => n.EndsWith("client.ico", StringComparison.OrdinalIgnoreCase));
+                if (name != null)
+                {
+                    using var stream = asm.GetManifestResourceStream(name)!;
+                    return new Icon(stream);
+                }
+            }
+            catch { }
+            return null;
         }
     }
 }

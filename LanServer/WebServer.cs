@@ -26,7 +26,7 @@ namespace LanServer
 
         private void StartWebSocket()
         {
-            FleckLog.Level = LogLevel.Error;
+            FleckLog.Level = Fleck.LogLevel.Error;
             _ws = new WebSocketServer($"ws://0.0.0.0:{Config.Current.WebSocketPort}");
             _ws.Start(socket =>
             {
@@ -65,24 +65,28 @@ namespace LanServer
 
         private void StartHttp()
         {
-            _http = new HttpListener();
-            // Use * to listen on all interfaces - run server as admin or use netsh to allow
-            _http.Prefixes.Add($"http://*:{Config.Current.HttpPort}/");
-            try
+            // Try http://+:port/ first (works without admin on most machines via netsh or Windows defaults)
+            // Fall back to localhost if that also fails
+            foreach (var prefix in new[] { $"http://+:{Config.Current.HttpPort}/", $"http://localhost:{Config.Current.HttpPort}/" })
             {
-                _http.Start();
-                Task.Run(HttpLoop);
-                LogMessage?.Invoke($"HTTP server listening on port {Config.Current.HttpPort}");
+                try
+                {
+                    _http = new HttpListener();
+                    _http.Prefixes.Add(prefix);
+                    _http.AuthenticationSchemes = AuthenticationSchemes.Anonymous;
+                    _http.Start();
+                    Task.Run(HttpLoop);
+                    var scope = prefix.Contains("+") ? "all interfaces" : "localhost only";
+                    LogMessage?.Invoke($"HTTP server listening on port {Config.Current.HttpPort} ({scope})");
+                    return;
+                }
+                catch
+                {
+                    try { _http?.Stop(); } catch { }
+                    _http = null;
+                }
             }
-            catch
-            {
-                // Fallback to localhost only
-                _http = new HttpListener();
-                _http.Prefixes.Add($"http://localhost:{Config.Current.HttpPort}/");
-                _http.Start();
-                Task.Run(HttpLoop);
-                LogMessage?.Invoke($"HTTP server on localhost:{Config.Current.HttpPort} (limited - run as admin for LAN access)");
-            }
+            LogMessage?.Invoke("HTTP server failed to start.");
         }
 
         private async Task HttpLoop()
