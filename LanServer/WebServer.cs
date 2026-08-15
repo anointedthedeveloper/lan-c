@@ -105,15 +105,7 @@ namespace LanServer
                 var path = ctx.Request.Url?.AbsolutePath.TrimStart('/') ?? "";
                 if (string.IsNullOrEmpty(path))
                 {
-                    var files = FileManager.GetFiles();
-                    var sb = new StringBuilder("<!DOCTYPE html><html><head><style>body{font-family:Segoe UI;background:#1e1e1e;color:#fff;padding:20px}a{color:#4fc3f7}ul{list-style:none;padding:0}li{padding:8px;border-bottom:1px solid #333}</style></head><body><h2>LanC File Server</h2><ul>");
-                    foreach (var f in files)
-                        sb.Append($"<li><a href='/{Uri.EscapeDataString(f.FileName)}'>{f.FileName}</a> &nbsp; <span style='color:#aaa'>{f.FileSize / 1024} KB</span></li>");
-                    sb.Append("</ul></body></html>");
-                    var bytes = Encoding.UTF8.GetBytes(sb.ToString());
-                    ctx.Response.ContentType = "text/html; charset=utf-8";
-                    ctx.Response.ContentLength64 = bytes.Length;
-                    ctx.Response.OutputStream.Write(bytes);
+                    ServeIndexPage(ctx);
                 }
                 else
                 {
@@ -130,6 +122,7 @@ namespace LanServer
                     else
                     {
                         ctx.Response.StatusCode = 404;
+                        Serve404Page(ctx);
                     }
                 }
             }
@@ -138,6 +131,56 @@ namespace LanServer
             {
                 try { ctx.Response.OutputStream.Close(); } catch { }
             }
+        }
+
+        private static void ServeIndexPage(HttpListenerContext ctx)
+        {
+            var files = FileManager.GetFiles();
+            var template = LoadAsset("index.html");
+
+            var tableHtml = files.Count == 0
+                ? "<div class=\"empty\">No files uploaded yet.</div>"
+                : BuildFileTable(files);
+
+            var html = template
+                .Replace("{{FILE_COUNT}}", files.Count.ToString())
+                .Replace("{{FILE_TABLE}}", tableHtml);
+
+            WriteHtml(ctx, html, 200);
+        }
+
+        private static void Serve404Page(HttpListenerContext ctx)
+        {
+            WriteHtml(ctx, LoadAsset("404.html"), 404);
+        }
+
+        private static string BuildFileTable(List<ManagedFile> files)
+        {
+            var sb = new StringBuilder("<table><thead><tr><th>File</th><th>Size</th><th></th></tr></thead><tbody>");
+            foreach (var f in files)
+            {
+                var ext = Path.GetExtension(f.FileName).TrimStart('.').ToUpper();
+                if (string.IsNullOrEmpty(ext)) ext = "FILE";
+                var escaped = Uri.EscapeDataString(f.FileName);
+                sb.Append($"""<tr><td><span class="file-icon">{ext}</span><span class="file-name">{f.FileName}</span></td><td class="file-size">{f.FileSize / 1024} KB</td><td><a class="dl-btn" href="/{escaped}">&#8595; Download</a></td></tr>""");
+            }
+            sb.Append("</tbody></table>");
+            return sb.ToString();
+        }
+
+        private static void WriteHtml(HttpListenerContext ctx, string html, int statusCode)
+        {
+            var bytes = Encoding.UTF8.GetBytes(html);
+            ctx.Response.StatusCode = statusCode;
+            ctx.Response.ContentType = "text/html; charset=utf-8";
+            ctx.Response.ContentLength64 = bytes.Length;
+            ctx.Response.OutputStream.Write(bytes);
+        }
+
+        private static string LoadAsset(string fileName)
+        {
+            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", fileName);
+            return File.Exists(path) ? File.ReadAllText(path) : $"<html><body>{fileName} not found</body></html>";
         }
     }
 }

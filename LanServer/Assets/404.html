@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LanC — File Not Found</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0e1a;
+    color: #dce6ff;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    background: #10162a;
+    border-bottom: 2px solid #1e64c8;
+    padding: 0 32px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+  }
+  header .logo { font-size: 1.4rem; font-weight: 700; color: #fff; }
+  header .logo span { color: #64b4ff; font-weight: 400; font-size: 0.9rem; margin-left: 10px; }
+  .body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 40px;
+  }
+  .code {
+    font-size: 5rem;
+    font-weight: 700;
+    color: #1e64c8;
+    line-height: 1;
+  }
+  .msg { font-size: 1.1rem; color: #6478aa; }
+  a {
+    margin-top: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #1e64c8;
+    color: #fff;
+    text-decoration: none;
+    padding: 8px 22px;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+  a:hover { background: #2878e0; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">LanC <span>File Server</span></div>
+</header>
+<div class="body">
+  <div class="code">404</div>
+  <div class="msg">File not found on this server.</div>
+  <a href="/">← Back to file list</a>
+</div>
+</body>
+</html>

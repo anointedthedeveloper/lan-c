@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LanC File Server</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-base:    #0a0e1a;
+    --bg-card:    #10162a;
+    --bg-row:     #141e36;
+    --bg-row-alt: #111828;
+    --accent:     #1e64c8;
+    --accent-lt:  #64b4ff;
+    --text:       #dce6ff;
+    --muted:      #6478aa;
+    --border:     #1e3258;
+    --green:      #16be6e;
+  }
+
+  body {
+    background: var(--bg-base);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--bg-card);
+    border-bottom: 2px solid var(--accent);
+    padding: 0 32px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  header .logo {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 1px;
+  }
+
+  header .logo span {
+    color: var(--accent-lt);
+    font-weight: 400;
+    font-size: 0.9rem;
+    margin-left: 10px;
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 40px auto;
+    padding: 0 20px;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .card-header .bar {
+    width: 3px;
+    height: 18px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  .card-header h2 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--accent-lt);
+  }
+
+  .card-header .count {
+    margin-left: auto;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead th {
+    background: var(--bg-base);
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 10px 20px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  tbody tr:nth-child(even) { background: var(--bg-row-alt); }
+  tbody tr:hover { background: var(--bg-row); }
+
+  tbody td {
+    padding: 12px 20px;
+    font-size: 0.9rem;
+  }
+
+  .file-icon {
+    display: inline-block;
+    width: 28px;
+    height: 28px;
+    background: var(--accent);
+    border-radius: 5px;
+    text-align: center;
+    line-height: 28px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #fff;
+    margin-right: 10px;
+    vertical-align: middle;
+    text-transform: uppercase;
+  }
+
+  .file-name {
+    vertical-align: middle;
+    color: var(--text);
+  }
+
+  .file-size {
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  .dl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--accent);
+    color: #fff;
+    text-decoration: none;
+    padding: 6px 16px;
+    border-radius: 5px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    transition: background 0.15s;
+  }
+
+  .dl-btn:hover { background: #2878e0; }
+
+  .empty {
+    padding: 48px 20px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.78rem;
+    margin-top: 32px;
+    padding-bottom: 32px;
+  }
+
+  .status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+    margin-right: 6px;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">LanC <span>File Server</span></div>
+  <div style="margin-left:auto;font-size:0.82rem;color:var(--muted)">
+    <span class="status-dot"></span>Online
+  </div>
+</header>
+
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <div class="bar"></div>
+      <h2>Available Files</h2>
+      <span class="count">{{FILE_COUNT}} file(s)</span>
+    </div>
+
+    {{FILE_TABLE}}
+  </div>
+
+  <footer>LanC &mdash; LAN Command &amp; Control &mdash; Offline Network Management</footer>
+</div>
+
+</body>
+</html>

@@ -30,5 +30,11 @@ Desktop.ini
 # Publish profiles
 **/Properties/PublishProfiles/
 PublishProfiles/
+
+# Executables and debug symbols
 *.exe
-.exe
+*.pdb
+
+# Build output folders
+LanServerExe/
+LanClientExe/
