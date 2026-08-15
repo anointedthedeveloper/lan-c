@@ -4,22 +4,22 @@ namespace LanServer.Controls
     {
         private readonly Label _valueLabel;
         private readonly Label _supportLabel;
+        private readonly Color _accent;
 
         public StatCard(string title, string value, string support, Color accent)
         {
-            Width = 220;
+            _accent = accent;
+            Dock = DockStyle.Fill;
             Height = 110;
             BackColor = Theme.BgCard;
             Margin = new Padding(0, 0, 12, 0);
-            Padding = new Padding(20, 16, 20, 16);
             Cursor = Cursors.Default;
 
             Paint += (_, e) =>
             {
                 using var pen = new Pen(Theme.Border, 1);
                 e.Graphics.DrawRectangle(pen, 0, 0, Width - 1, Height - 1);
-                // top accent line
-                using var accentBrush = new SolidBrush(accent);
+                using var accentBrush = new SolidBrush(_accent);
                 e.Graphics.FillRectangle(accentBrush, 0, 0, Width, 3);
             };
 
