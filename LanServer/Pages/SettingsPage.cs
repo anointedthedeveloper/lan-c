@@ -11,7 +11,6 @@ namespace LanServer.Pages
         {
             ("general",  "General"),
             ("network",  "Network"),
-            ("security", "Security"),
         };
 
         public SettingsPage()
@@ -109,9 +108,8 @@ namespace LanServer.Pages
             _contentArea.Controls.Clear();
             Panel section = id switch
             {
-                "network"  => BuildNetworkSection(),
-                "security" => BuildSecuritySection(),
-                _          => BuildGeneralSection()
+                "network" => BuildNetworkSection(),
+                _         => BuildGeneralSection()
             };
             section.Dock = DockStyle.Fill;
             _contentArea.Controls.Add(section);
@@ -175,29 +173,6 @@ namespace LanServer.Pages
                 Config.Save();
                 AppState.Log("Network settings saved. Restart required to apply port changes.", LogLevel.Warning);
                 ToastManager.Show("Network settings saved. Restart to apply.", ToastKind.Warning);
-            });
-
-            return p;
-        }
-
-        private static Panel BuildSecuritySection()
-        {
-            var p = SectionPanel();
-            int y = 24;
-
-            AddSectionTitle(p, "Security", ref y);
-
-            var passBox = AddField(p, "Admin Password", "", "Change the admin panel password.", ref y, password: true);
-
-            AddSaveButton(p, y, () =>
-            {
-                if (string.IsNullOrWhiteSpace(passBox.Text))
-                { ToastManager.Show("Password cannot be empty.", ToastKind.Warning); return; }
-                Config.Current.AdminPassword = passBox.Text;
-                Config.Save();
-                passBox.Text = "";
-                AppState.Log("Admin password updated.", LogLevel.Success);
-                ToastManager.Show("Password updated.", ToastKind.Success);
             });
 
             return p;

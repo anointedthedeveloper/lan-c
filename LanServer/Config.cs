@@ -5,7 +5,6 @@ namespace LanServer
 {
     public class AppConfig
     {
-        public string AdminPassword { get; set; } = "admin234";
         public int WebSocketPort { get; set; } = 5000;
         public int HttpPort { get; set; } = 5001;
         public int UdpPort { get; set; } = 5002;
