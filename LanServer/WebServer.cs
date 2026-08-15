@@ -26,7 +26,7 @@ namespace LanServer
 
         private void StartWebSocket()
         {
-            FleckLog.Level = LogLevel.Off;
+            FleckLog.Level = LogLevel.Error;
             _ws = new WebSocketServer($"ws://0.0.0.0:{Config.Current.WebSocketPort}");
             _ws.Start(socket =>
             {
