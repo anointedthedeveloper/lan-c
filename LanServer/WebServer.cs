@@ -100,7 +100,8 @@ namespace LanServer
                     string name     = data.computerName ?? "Unknown";
                     string ip       = socket.ConnectionInfo.ClientIpAddress;
                     string deviceId = data.deviceId ?? $"{name.ToUpper()}-UNKNOWN";
-                    ClientManager.AddOrUpdate(socket, name, ip, deviceId);
+                    string version  = (string?)data.version ?? "unknown";
+                    ClientManager.AddOrUpdate(socket, name, ip, deviceId, version);
                     LogMessage?.Invoke($"Registered: {name} ({ip}) [{deviceId}]");
                 }
                 else if (type == "ack")
@@ -206,10 +207,10 @@ namespace LanServer
                     return;
                 }
 
-                // ── /dl/<shortCode> — short URL auto-download redirect ─────────
-                if (path.StartsWith("dl/", StringComparison.OrdinalIgnoreCase))
+                // ── /d/<shortCode> — short URL auto-download redirect ──────────
+                if (path.StartsWith("d/", StringComparison.OrdinalIgnoreCase))
                 {
-                    var shortCode = path.Substring(3);
+                    var shortCode = path.Substring(2);
                     ServeShortDownload(ctx, shortCode);
                     return;
                 }
@@ -379,7 +380,7 @@ namespace LanServer
             {
                 id        = e.ShortCode,
                 fileName  = e.FileName,
-                shortUrl  = $"/dl/{e.ShortCode}",
+                shortUrl  = $"/d/{e.ShortCode}",
                 uploadedAt = e.UploadedAt.ToString("MMM dd, yyyy HH:mm")
             });
             WriteJson(ctx, JsonConvert.SerializeObject(entries));

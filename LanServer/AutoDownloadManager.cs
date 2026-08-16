@@ -49,18 +49,18 @@ namespace LanServer
         private static string GenerateCode(string fileName)
         {
             const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-            // Mix ticks + filename hash for uniqueness
+            // Mix ticks + filename hash for uniqueness — 4 chars gives 32^4 = ~1M combinations
             var seed = (int)(DateTime.Now.Ticks & 0x7FFFFFFF) ^ fileName.GetHashCode();
             var rng  = new Random(seed);
-            var code = new char[6];
-            for (int i = 0; i < 6; i++)
+            var code = new char[4];
+            for (int i = 0; i < 4; i++)
                 code[i] = chars[rng.Next(chars.Length)];
 
             var candidate = new string(code);
-            // Avoid collision (extremely rare but safe)
+            // Avoid collision
             while (_entries.ContainsKey(candidate))
             {
-                for (int i = 0; i < 6; i++)
+                for (int i = 0; i < 4; i++)
                     code[i] = chars[rng.Next(chars.Length)];
                 candidate = new string(code);
             }

@@ -5,11 +5,13 @@ namespace LanServer
 {
     public class ConnectedClient
     {
-        public string Id { get; set; } = "";           // stable: MachineName-MACAddress
+        public string Id { get; set; } = "";
         public string ComputerName { get; set; } = "";
         public string IpAddress { get; set; } = "";
         public DateTime LastSeen { get; set; } = DateTime.Now;
         public bool IsOnline { get; set; } = true;
+        public string Version { get; set; } = "unknown";
+        public bool AppInstalled { get; set; } = true;
         public IWebSocketConnection? Socket { get; set; }
     }
 
@@ -22,19 +24,17 @@ namespace LanServer
 
         public static event Action? ClientsChanged;
 
-        public static void AddOrUpdate(IWebSocketConnection socket, string computerName, string ip, string deviceId)
+        public static void AddOrUpdate(IWebSocketConnection socket, string computerName, string ip, string deviceId, string version = "unknown")
         {
-            // If the same device reconnects with a new socket, close the stale mapping
             var socketKey = socket.ConnectionInfo.Id.ToString();
-
-            // If this device already exists, update it; otherwise add new
             var client = _clients.GetOrAdd(deviceId, _ => new ConnectedClient { Id = deviceId });
-            client.ComputerName = computerName;
-            client.IpAddress    = ip;
-            client.LastSeen     = DateTime.Now;
-            client.IsOnline     = true;
-            client.Socket       = socket;
-
+            client.ComputerName  = computerName;
+            client.IpAddress     = ip;
+            client.LastSeen      = DateTime.Now;
+            client.IsOnline      = true;
+            client.Version       = version;
+            client.AppInstalled  = true;
+            client.Socket        = socket;
             _socketToDevice[socketKey] = deviceId;
             ClientsChanged?.Invoke();
         }

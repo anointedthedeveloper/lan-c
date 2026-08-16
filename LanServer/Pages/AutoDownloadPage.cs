@@ -171,8 +171,8 @@ namespace LanServer.Pages
             _table.Items.Clear();
             foreach (var e in entries)
             {
-                var shortUrl = $"/dl/{e.ShortCode}";
-                var fullUrl  = $"http://{ip}:{Config.Current.HttpPort}/dl/{e.ShortCode}";
+                var shortUrl = $"/d/{e.ShortCode}";
+                var fullUrl  = $"http://{ip}:{Config.Current.HttpPort}/d/{e.ShortCode}";
                 var item = _table.AddRow(
                     Theme.BgCard, Theme.TextPrimary,
                     e.FileName,
@@ -210,7 +210,7 @@ namespace LanServer.Pages
                 var fileName = Path.GetFileName(dlg.FileName);
                 var code = AutoDownloadManager.Register(fileName);
                 var ip   = GetLocalIp();
-                var fullUrl = $"http://{ip}:{Config.Current.HttpPort}/dl/{code}";
+                var fullUrl = $"http://{ip}:{Config.Current.HttpPort}/d/{code}";
 
                 AppState.Log($"Auto-download link created: {fullUrl}", LogLevel.Success);
                 ToastManager.Show($"Link generated! Copied to clipboard.", ToastKind.Success);
@@ -270,7 +270,7 @@ namespace LanServer.Pages
             }
 
             var ip      = GetLocalIp();
-            var dlUrl   = $"http://{ip}:{Config.Current.HttpPort}/dl/{code}";
+            var dlUrl   = $"http://{ip}:{Config.Current.HttpPort}/d/{code}";
             CommandDispatcher.IssueAutoDownload(targets, entry.FileName, dlUrl);
 
             AppState.Log($"Auto-download pushed '{entry.FileName}' → {targets.Count} client(s) [{dlUrl}]", LogLevel.Success);

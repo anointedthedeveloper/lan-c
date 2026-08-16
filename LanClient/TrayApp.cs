@@ -119,6 +119,19 @@ namespace LanClient
             _mainForm.BringToFront();
         }
 
+        public void BringToFront()
+        {
+            // Called from pipe listener thread — must marshal to UI thread
+            try
+            {
+                if (Application.OpenForms.Count > 0)
+                    Application.OpenForms[0]?.Invoke(ShowDashboard);
+                else
+                    ShowDashboard();
+            }
+            catch { }
+        }
+
         private void ExitApp()
         {
             _wsClient.Disconnect();

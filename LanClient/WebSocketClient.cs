@@ -59,11 +59,13 @@ namespace LanClient
         {
             var deviceName = Environment.MachineName;
             var deviceId   = GetStableDeviceId();
+            var version    = ClientVersionInfo.Current;
             var msg = JsonConvert.SerializeObject(new
             {
                 type         = "register",
                 computerName = deviceName,
-                deviceId
+                deviceId,
+                version
             });
             await Send(msg);
         }
@@ -131,6 +133,11 @@ namespace LanClient
                             form.SetDone(result.Success, result.Success ? "Installation complete." : $"Failed: {result.Message}");
                             await SendAck(result.Success ? "install_ok" : "install_fail");
                             CommandCompleted?.Invoke($"Install {fileName}", result.Success);
+                            if (result.Success)
+                            {
+                                await Task.Delay(2000);
+                                form.Invoke(form.Close);
+                            }
                         });
                         break;
 
@@ -175,6 +182,38 @@ namespace LanClient
                                 form.SetDone(result.Success, result.Success ? "Download complete." : $"Failed: {result.Message}");
                                 await SendAck(result.Success ? "autodownload_ok" : "autodownload_fail");
                                 CommandCompleted?.Invoke($"Auto-Download {adFile}", result.Success);
+                            });
+                        }
+                        break;
+
+                    case "wake":
+                        // Server wants us to show the tray icon / re-attach
+                        await SendAck("wake_ok");
+                        break;
+
+                    case "uninstall":
+                        await SendAck("uninstall_ack");
+                        CommandExecutor.Uninstall();
+                        break;
+
+                    case "update":
+                        var updateUrl  = payload?["downloadUrl"]?.ToString() ?? "";
+                        var updateFile = payload?["fileName"]?.ToString() ?? "";
+                        if (!string.IsNullOrEmpty(updateUrl))
+                        {
+                            await RunWithProgress($"Updating LanC Client...", async (form) =>
+                            {
+                                form.SetStatus("Downloading update...");
+                                var progress = new Progress<int>(p => { form.SetProgress(p); form.SetStatus($"Downloading... {p}%"); });
+                                var result   = await _executor.Download(updateFile, updateUrl, progress);
+                                if (!result.Success) { form.SetDone(false, $"Download failed: {result.Message}"); return; }
+                                form.SetStatus("Installing update...");
+                                await SendAck("update_ack");
+                                CommandCompleted?.Invoke("Update", true);
+                                form.SetDone(true, "Update downloaded. Installing...");
+                                await Task.Delay(1500);
+                                form.Invoke(form.Close);
+                                CommandExecutor.RunUpdater(result.Message);
                             });
                         }
                         break;

@@ -34,7 +34,7 @@ class GenerateIcons
 
     static void CreateIco(string path, Color bgColor, Color accentColor, bool isServer)
     {
-        int[] sizes = { 256, 48, 32, 16 };
+        int[] sizes = { 256, 64, 48, 32, 16 };
         var frames = new Bitmap[sizes.Length];
 
         for (int i = 0; i < sizes.Length; i++)

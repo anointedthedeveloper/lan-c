@@ -55,9 +55,8 @@ namespace LanClient
             {
                 var psi = new ProcessStartInfo(exe, args)
                 {
-                    UseShellExecute = true,
-                    Verb = "runas",
-                    WindowStyle = ProcessWindowStyle.Hidden
+                    UseShellExecute    = true,
+                    WindowStyle        = ProcessWindowStyle.Hidden
                 };
                 var proc = Process.Start(psi);
                 if (proc == null) return new CommandResult { Success = false, Message = "Failed to start installer." };
@@ -88,6 +87,36 @@ namespace LanClient
                 Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
             }
             catch { }
+        }
+
+        public static void Uninstall()
+        {
+            // Run the uninstaller silently — installed via Inno Setup so this works
+            var uninstPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                "LanC Client", "unins000.exe");
+
+            if (File.Exists(uninstPath))
+            {
+                Process.Start(new ProcessStartInfo(uninstPath, "/VERYSILENT /NORESTART")
+                {
+                    UseShellExecute = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                });
+            }
+            // Remove startup entry and exit
+            StartupManager.Disable();
+            Application.Exit();
+        }
+
+        public static void RunUpdater(string installerPath)
+        {
+            // Launch the new installer which will overwrite the existing install, then exit
+            Process.Start(new ProcessStartInfo(installerPath, "/VERYSILENT /NORESTART /CLOSEAPPLICATIONS")
+            {
+                UseShellExecute = true
+            });
+            Application.Exit();
         }
     }
 }
