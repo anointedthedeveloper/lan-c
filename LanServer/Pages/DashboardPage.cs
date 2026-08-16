@@ -133,7 +133,7 @@ namespace LanServer.Pages
             _dropZone = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(12, 37, 99, 235),
+                BackColor = Theme.BlueSoft,
                 Margin = new Padding(0, 0, 0, 10),
                 Cursor = Cursors.Hand
             };
@@ -200,7 +200,7 @@ namespace LanServer.Pages
             _recentLog = new RichTextBox
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(9, 13, 22),
+                BackColor = Theme.BgCard2,
                 ForeColor = Theme.TextPrimary,
                 Font = Theme.FontMono,
                 BorderStyle = BorderStyle.None,
@@ -209,6 +209,7 @@ namespace LanServer.Pages
             };
             actBody.Controls.Add(_recentLog);
             actCard.Controls.Add(actBody);
+            actCard.Controls.Add(actHdr);
             actCard.Controls.Add(actHdr);
 
             midRow.Controls.Add(deployCard, 0, 0);
@@ -334,16 +335,28 @@ namespace LanServer.Pages
                 Dock = DockStyle.Fill,
                 BackColor = Theme.BgCard
             };
+
+            bool hovered = false;
             p.Paint += (_, e) =>
             {
-                using var pen = new Pen(Theme.Border, 1);
+                using var pen = new Pen(hovered ? Color.FromArgb(160, Theme.Blue.R, Theme.Blue.G, Theme.Blue.B) : Theme.Border, 1.5f);
                 e.Graphics.DrawRectangle(pen, 0, 0, p.Width - 1, p.Height - 1);
+                if (hovered)
+                {
+                    using var hb = new SolidBrush(Theme.BgHover);
+                    e.Graphics.FillRectangle(hb, 1, 1, p.Width - 2, p.Height - 2);
+                }
             };
+            p.MouseEnter += (_, _) => { hovered = true; p.Invalidate(); };
+            p.MouseLeave += (_, _) => { hovered = false; p.Invalidate(); };
 
-            var nameLbl   = new Label { Text = name,            Font = Theme.FontBold, ForeColor = Theme.TextPrimary, AutoSize = true, Left = 16, Top = 14 };
-            var detailLbl = new Label { Text = detail,           Font = Theme.FontSm,   ForeColor = Theme.TextSecond,  AutoSize = true, Left = 16, Top = 36 };
-            var statusLbl = new Label { Text = $"● {status}",   Font = Theme.FontSm,   ForeColor = statusColor,       AutoSize = true, Left = 16, Top = 56 };
-            p.Controls.AddRange(new Control[] { nameLbl, detailLbl, statusLbl });
+            // Colored left accent
+            var accentBar = new Panel { Width = 3, Dock = DockStyle.Left, BackColor = statusColor };
+
+            var nameLbl   = new Label { Text = name,          Font = Theme.FontBold, ForeColor = Theme.TextPrimary, AutoSize = true, Left = 20, Top = 14, BackColor = Color.Transparent };
+            var detailLbl = new Label { Text = detail,         Font = Theme.FontSm,   ForeColor = Theme.TextSecond,  AutoSize = true, Left = 20, Top = 36, BackColor = Color.Transparent };
+            var statusLbl = new Label { Text = $"● {status}", Font = Theme.FontSm,   ForeColor = statusColor,       AutoSize = true, Left = 20, Top = 56, BackColor = Color.Transparent };
+            p.Controls.AddRange(new Control[] { accentBar, nameLbl, detailLbl, statusLbl });
             return p;
         }
 

@@ -6,21 +6,20 @@ namespace LanClient
         private Label _statusLabel  = null!;
         private Button _closeBtn    = null!;
 
-        private static readonly Color BgApp   = Color.FromArgb(8,  13, 24);
-        private static readonly Color BgCard  = Color.FromArgb(17, 26, 43);
-        private static readonly Color BgCard2 = Color.FromArgb(22, 34, 56);
-        private static readonly Color Border  = Color.FromArgb(36, 51, 77);
-        private static readonly Color Blue    = Color.FromArgb(37,  99, 235);
-        private static readonly Color Green   = Color.FromArgb(16, 185, 129);
-        private static readonly Color Red     = Color.FromArgb(225, 29,  72);
-        private static readonly Color TxtPri  = Color.FromArgb(248, 250, 252);
-        private static readonly Color TxtSec  = Color.FromArgb(148, 163, 184);
-        private static readonly Color TxtMuted= Color.FromArgb(71,  85, 105);
+        private static readonly Color BgApp   = Color.FromArgb(245, 247, 250);
+        private static readonly Color BgCard  = Color.FromArgb(255, 255, 255);
+        private static readonly Color BgCard2 = Color.FromArgb(248, 250, 253);
+        private static readonly Color Border  = Color.FromArgb(226, 232, 240);
+        private static readonly Color Blue    = Color.FromArgb(37,  99,  235);
+        private static readonly Color Green   = Color.FromArgb(5,  150, 105);
+        private static readonly Color Red     = Color.FromArgb(220,  38,  38);
+        private static readonly Color TxtPri  = Color.FromArgb(15,  23,  42);
+        private static readonly Color TxtSec  = Color.FromArgb(71,  85, 105);
 
         public ProgressForm(string title)
         {
             Text = "LanC";
-            Size = new Size(420, 180);
+            Size = new Size(440, 190);
             StartPosition = FormStartPosition.CenterScreen;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = MinimizeBox = false;
@@ -29,24 +28,29 @@ namespace LanClient
             TopMost = true;
             Font = new Font("Segoe UI", 9f);
 
+            // Top accent bar
+            var accentBar = new Panel { Dock = DockStyle.Top, Height = 4, BackColor = Blue };
+
             // Title bar
-            var titleBar = new Panel { Dock = DockStyle.Top, Height = 48, BackColor = Color.FromArgb(6, 10, 18) };
+            var titleBar = new Panel { Dock = DockStyle.Top, Height = 52, BackColor = BgCard };
             titleBar.Paint += (_, e) =>
             {
-                using var pen = new Pen(Blue, 1);
+                using var pen = new Pen(Border, 1);
                 e.Graphics.DrawLine(pen, 0, titleBar.Height - 1, titleBar.Width, titleBar.Height - 1);
             };
             var titleLbl = new Label
             {
                 Text = title,
-                Font = new Font("Segoe UI", 10f, FontStyle.Bold),
+                Font = new Font("Segoe UI", 11f, FontStyle.Bold),
                 ForeColor = TxtPri,
-                AutoSize = true, Left = 16, Top = 14
+                AutoSize = true,
+                Left = 20, Top = 14,
+                BackColor = Color.Transparent
             };
             titleBar.Controls.Add(titleLbl);
 
             // Body
-            var body = new Panel { Dock = DockStyle.Fill, BackColor = BgCard, Padding = new Padding(20, 12, 20, 12) };
+            var body = new Panel { Dock = DockStyle.Fill, BackColor = BgCard, Padding = new Padding(20, 14, 20, 14) };
             body.Paint += (_, e) =>
             {
                 using var pen = new Pen(Border, 1);
@@ -59,13 +63,14 @@ namespace LanClient
                 Font = new Font("Segoe UI", 8.5f),
                 ForeColor = TxtSec,
                 Dock = DockStyle.Top,
-                Height = 22
+                Height = 24,
+                BackColor = Color.Transparent
             };
 
             _bar = new ProgressBar
             {
                 Dock = DockStyle.Top,
-                Height = 6,
+                Height = 8,
                 Style = ProgressBarStyle.Continuous,
                 BackColor = BgCard2,
                 ForeColor = Blue,
@@ -76,7 +81,7 @@ namespace LanClient
             {
                 Text = "Close",
                 Dock = DockStyle.Bottom,
-                Height = 32,
+                Height = 36,
                 BackColor = BgCard2,
                 ForeColor = TxtSec,
                 FlatStyle = FlatStyle.Flat,
@@ -85,6 +90,8 @@ namespace LanClient
                 Cursor = Cursors.Hand,
                 FlatAppearance = { BorderSize = 1, BorderColor = Border }
             };
+            _closeBtn.MouseEnter += (_, _) => { if (_closeBtn.Enabled) { _closeBtn.BackColor = Color.FromArgb(230, 230, 240); } };
+            _closeBtn.MouseLeave += (_, _) => { _closeBtn.BackColor = BgCard2; };
             _closeBtn.Click += (_, _) => Close();
 
             body.Controls.Add(_closeBtn);
@@ -93,6 +100,7 @@ namespace LanClient
 
             Controls.Add(body);
             Controls.Add(titleBar);
+            Controls.Add(accentBar);
         }
 
         public void SetStatus(string msg)
@@ -116,7 +124,10 @@ namespace LanClient
             _bar.ForeColor         = success ? Green : Red;
             _closeBtn.Enabled      = true;
             _closeBtn.ForeColor    = success ? Green : Red;
-            _closeBtn.FlatAppearance.BorderColor = success ? Green : Red;
+            _closeBtn.BackColor    = success ? Color.FromArgb(236, 253, 245) : Color.FromArgb(254, 242, 242);
+            _closeBtn.FlatAppearance.BorderColor = success
+                ? Color.FromArgb(167, 243, 208)
+                : Color.FromArgb(254, 202, 202);
         }
     }
 }

@@ -62,9 +62,9 @@ namespace LanServer.Pages
             clearBtn.Width = 80; clearBtn.Top = 10;
             clearBtn.Click += (_, _) =>
             {
-                if (!ConfirmDialog.Ask(FindForm(), "Clear Logs?", "This will remove all activity log entries.", "Clear Logs")) return;
+                if (!ConfirmDialog.Ask(FindForm()!, "Clear Logs?", "This will remove all activity log entries.", "Clear Logs")) return;
                 AppState.ClearLogs();
-                _logBox.Clear();
+                _logBox?.Clear();
                 ToastManager.Show("Logs cleared.", ToastKind.Info);
             };
             toolbar.SizeChanged += (_, _) => clearBtn.Left = toolbar.Width - clearBtn.Width - 24;
@@ -75,7 +75,7 @@ namespace LanServer.Pages
             _logBox = new RichTextBox
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(9, 13, 22),
+                BackColor = Theme.BgCard2,
                 ForeColor = Theme.TextPrimary,
                 Font = Theme.FontMono,
                 BorderStyle = BorderStyle.None,
@@ -144,7 +144,7 @@ namespace LanServer.Pages
             _logBox.AppendText($"{levelText}  ");
 
             // Message
-            _logBox.SelectionColor = entry.Level == LogLevel.Error ? Theme.Red
+            _logBox.SelectionColor = entry.Level == LogLevel.Error   ? Theme.Red
                                    : entry.Level == LogLevel.Warning ? Theme.Amber
                                    : Theme.TextPrimary;
             _logBox.AppendText(entry.Message + "\n");

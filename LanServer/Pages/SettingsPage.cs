@@ -55,9 +55,7 @@ namespace LanServer.Pages
             {
                 using var pen = new Pen(Theme.Border, 1);
                 e.Graphics.DrawRectangle(pen, 0, 0, _contentArea.Width - 1, _contentArea.Height - 1);
-            };
-
-            Panel? firstBtn = null;
+            };            Panel? firstBtn = null;
             foreach (var (id, label) in _sections)
             {
                 var btn = MakeNavBtn(label, id);
@@ -78,15 +76,15 @@ namespace LanServer.Pages
 
         private Panel MakeNavBtn(string label, string id)
         {
-            var p = new Panel { Height = 38, Width = 164, BackColor = Color.Transparent, Cursor = Cursors.Hand, Margin = new Padding(0, 2, 0, 2) };
-            var lbl = new Label { Text = label, Font = Theme.FontBase, ForeColor = Theme.TextSecond, AutoSize = true, Left = 14, Top = 10 };
+            var p = new Panel { Height = 40, Width = 164, BackColor = Color.Transparent, Cursor = Cursors.Hand, Margin = new Padding(0, 2, 0, 2) };
+            var lbl = new Label { Text = label, Font = Theme.FontBase, ForeColor = Theme.TextSecond, AutoSize = true, Left = 14, Top = 10, BackColor = Color.Transparent };
             p.Controls.Add(lbl);
             p.Click += (_, _) => { ShowSection(id); SetNavActive(p, lbl); };
             lbl.Click += (_, _) => { ShowSection(id); SetNavActive(p, lbl); };
-            p.MouseEnter += (_, _) => { if (_activeSection != p) p.BackColor = Theme.BgHover; };
-            p.MouseLeave += (_, _) => { if (_activeSection != p) p.BackColor = Color.Transparent; };
-            lbl.MouseEnter += (_, _) => { if (_activeSection != p) p.BackColor = Theme.BgHover; };
-            lbl.MouseLeave += (_, _) => { if (_activeSection != p) p.BackColor = Color.Transparent; };
+            p.MouseEnter += (_, _) => { if (_activeSection != p) { p.BackColor = Theme.BgHover; } };
+            p.MouseLeave += (_, _) => { if (_activeSection != p) { p.BackColor = Color.Transparent; } };
+            lbl.MouseEnter += (_, _) => { if (_activeSection != p) { p.BackColor = Theme.BgHover; } };
+            lbl.MouseLeave += (_, _) => { if (_activeSection != p) { p.BackColor = Color.Transparent; } };
             return p;
         }
 
@@ -97,10 +95,15 @@ namespace LanServer.Pages
             foreach (Control c in navFlow.Controls)
             {
                 c.BackColor = Color.Transparent;
-                if (c.Controls.Count > 0) c.Controls[0].ForeColor = Theme.TextSecond;
+                if (c.Controls.Count > 0)
+                {
+                    c.Controls[0].ForeColor = Theme.TextSecond;
+                    ((Label)c.Controls[0]).Font = Theme.FontBase;
+                }
             }
-            p.BackColor = Color.FromArgb(30, 37, 99, 235);
-            lbl.ForeColor = Theme.TextPrimary;
+            p.BackColor = Theme.BlueSoft;
+            lbl.ForeColor = Theme.Blue;
+            lbl.Font = Theme.FontBold;
         }
 
         private void ShowSection(string id)
@@ -181,7 +184,6 @@ namespace LanServer.Pages
         // ── Helpers ───────────────────────────────────────────────────────────
 
         private static Panel SectionPanel() => new() { BackColor = Theme.BgCard, AutoScroll = true };
-
         private static void AddSectionTitle(Panel p, string title, ref int y)
         {
             var lbl = new Label { Text = title, Font = Theme.FontLg, ForeColor = Theme.TextPrimary, AutoSize = true, Left = 24, Top = y };

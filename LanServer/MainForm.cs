@@ -18,9 +18,12 @@ namespace LanServer
             MinimumSize = new Size(1100, 680);
             StartPosition = FormStartPosition.CenterScreen;
             WindowState = FormWindowState.Maximized;
+            ShowInTaskbar = true;
             BackColor = Theme.BgApp;
             ForeColor = Theme.TextPrimary;
             Font = Theme.FontBase;
+            // Enable double buffering for smoother rendering
+            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
 
             LoadIcon();
             ToastManager.Init(this);

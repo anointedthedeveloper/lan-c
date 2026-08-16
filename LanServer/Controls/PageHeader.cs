@@ -12,7 +12,7 @@ namespace LanServer.Controls
         public PageHeader(string title, string subtitle = "")
         {
             Dock = DockStyle.Top;
-            Height = 72;
+            Height = 76;
             BackColor = Theme.BgCard;
             Padding = new Padding(24, 0, 24, 0);
 
@@ -28,7 +28,8 @@ namespace LanServer.Controls
                 Font = Theme.FontLg,
                 ForeColor = Theme.TextPrimary,
                 AutoSize = true,
-                Left = 24, Top = 14
+                Left = 24, Top = 16,
+                BackColor = Color.Transparent
             };
 
             var subLbl = new Label
@@ -37,7 +38,8 @@ namespace LanServer.Controls
                 Font = Theme.FontSm,
                 ForeColor = Theme.TextSecond,
                 AutoSize = true,
-                Left = 24, Top = 40
+                Left = 24, Top = 44,
+                BackColor = Color.Transparent
             };
 
             // Right side: copyable URL box + copy button + status
@@ -48,13 +50,13 @@ namespace LanServer.Controls
             {
                 Text = url,
                 Font = Theme.FontSm,
-                BackColor = Theme.BgInput,
+                BackColor = Theme.BgApp,
                 ForeColor = Theme.TextSecond,
                 BorderStyle = BorderStyle.FixedSingle,
                 ReadOnly = true,
                 Width = 220,
-                Height = 22,
-                Top = 14,
+                Height = 24,
+                Top = 16,
                 Cursor = Cursors.IBeam
             };
             _urlBox.Click += (_, _) => { _urlBox.SelectAll(); };
@@ -63,14 +65,16 @@ namespace LanServer.Controls
             {
                 Text = "⎘",
                 Font = new Font("Segoe UI", 9f),
-                BackColor = Theme.BgCard2,
+                BackColor = Theme.BgApp,
                 ForeColor = Theme.TextSecond,
                 FlatStyle = FlatStyle.Flat,
-                Width = 28, Height = 22,
-                Top = 14,
+                Width = 28, Height = 24,
+                Top = 16,
                 Cursor = Cursors.Hand,
                 FlatAppearance = { BorderSize = 1, BorderColor = Theme.Border }
             };
+            copyBtn.MouseEnter += (_, _) => { copyBtn.BackColor = Theme.BgHover; copyBtn.ForeColor = Theme.Blue; };
+            copyBtn.MouseLeave += (_, _) => { copyBtn.BackColor = Theme.BgApp;   copyBtn.ForeColor = Theme.TextSecond; };
             copyBtn.Click += (_, _) =>
             {
                 Clipboard.SetText(_urlBox.Text);
@@ -87,7 +91,8 @@ namespace LanServer.Controls
                 Font = Theme.FontSm,
                 ForeColor = Theme.TextMuted,
                 AutoSize = true,
-                Top = 40
+                Top = 44,
+                BackColor = Color.Transparent
             };
 
             _statusLabel = new Label
@@ -96,7 +101,8 @@ namespace LanServer.Controls
                 Font = Theme.FontSm,
                 ForeColor = Theme.Green,
                 AutoSize = true,
-                Top = 40
+                Top = 44,
+                BackColor = Color.Transparent
             };
 
             SizeChanged += (_, _) => PositionRight(infoLbl, copyBtn);
@@ -107,13 +113,9 @@ namespace LanServer.Controls
 
         private void PositionRight(Label infoLbl, Button copyBtn)
         {
-            // status dot far right
             _statusLabel.Left = Width - _statusLabel.Width - 24;
-            // info label left of status
             infoLbl.Left = Width - infoLbl.Width - 24;
-            // copy button
             copyBtn.Left = Width - copyBtn.Width - 24;
-            // url box left of copy button
             _urlBox.Left = copyBtn.Left - _urlBox.Width - 4;
         }
 

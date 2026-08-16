@@ -129,18 +129,21 @@ namespace LanServer.Pages
             Font = Theme.FontBase;
 
             // Header
-            var hdr = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = Theme.BgCard2 };
+            var hdr = new Panel { Dock = DockStyle.Top, Height = 64, BackColor = Theme.BgApp };
             hdr.Paint += (_, e) =>
             {
                 using var pen = new Pen(Theme.Border, 1);
                 e.Graphics.DrawLine(pen, 0, hdr.Height - 1, hdr.Width, hdr.Height - 1);
+                // Blue accent top bar
+                using var accent = new SolidBrush(Theme.Blue);
+                e.Graphics.FillRectangle(accent, 0, 0, hdr.Width, 3);
             };
-            var hdrTitle = new Label { Text = "New Deployment", Font = Theme.FontLg, ForeColor = Theme.TextPrimary, AutoSize = true, Left = 24, Top = 16 };
-            _stepIndicator = new Label { Text = "Step 1 of 3 — Select File", Font = Theme.FontSm, ForeColor = Theme.TextSecond, AutoSize = true, Left = 24, Top = 40 };
+            var hdrTitle = new Label { Text = "New Deployment", Font = Theme.FontLg, ForeColor = Theme.TextPrimary, AutoSize = true, Left = 24, Top = 18, BackColor = Color.Transparent };
+            _stepIndicator = new Label { Text = "Step 1 of 3 — Select File", Font = Theme.FontSm, ForeColor = Theme.TextSecond, AutoSize = true, Left = 24, Top = 44, BackColor = Color.Transparent };
             hdr.Controls.AddRange(new Control[] { hdrTitle, _stepIndicator });
 
             // Footer
-            var footer = new Panel { Dock = DockStyle.Bottom, Height = 56, BackColor = Theme.BgCard2 };
+            var footer = new Panel { Dock = DockStyle.Bottom, Height = 60, BackColor = Theme.BgApp };
             footer.Paint += (_, e) =>
             {
                 using var pen = new Pen(Theme.Border, 1);
@@ -193,7 +196,7 @@ namespace LanServer.Pages
             {
                 Width = 460, Height = 160,
                 Left = 24, Top = 24,
-                BackColor = Color.FromArgb(12, 37, 99, 235),
+                BackColor = Theme.BlueSoft,
                 Cursor = Cursors.Hand,
                 AllowDrop = true
             };
@@ -284,17 +287,17 @@ namespace LanServer.Pages
             int y = 16;
             foreach (var (label, val) in new[] { ("File", name), ("Size", size), ("Installer Type", type), ("Target", target) })
             {
-                var row = new Panel { Left = 24, Top = y, Width = 460, Height = 36, BackColor = Theme.BgCard2 };
+                var row = new Panel { Left = 24, Top = y, Width = 460, Height = 40, BackColor = Theme.BgApp };
                 row.Paint += (_, e) =>
                 {
                     using var pen = new Pen(Theme.Border, 1);
                     e.Graphics.DrawLine(pen, 0, row.Height - 1, row.Width, row.Height - 1);
                 };
-                var lbl = new Label { Text = label, Font = Theme.FontSm, ForeColor = Theme.TextSecond, AutoSize = true, Left = 12, Top = 10 };
-                var val2 = new Label { Text = val, Font = Theme.FontBold, ForeColor = Theme.TextPrimary, AutoSize = true, Left = 160, Top = 10 };
+                var lbl = new Label { Text = label, Font = Theme.FontSm, ForeColor = Theme.TextSecond, AutoSize = true, Left = 12, Top = 12, BackColor = Color.Transparent };
+                var val2 = new Label { Text = val, Font = Theme.FontBold, ForeColor = Theme.TextPrimary, AutoSize = true, Left = 160, Top = 12, BackColor = Color.Transparent };
                 row.Controls.AddRange(new Control[] { lbl, val2 });
                 p.Controls.Add(row);
-                y += 38;
+                y += 42;
             }
 
             _stepHost.Controls.Add(p);

@@ -16,8 +16,9 @@ namespace LanClient
         public event Action<string>? StatusChanged;
         public event Action<string, bool>? CommandCompleted;
 
-        public string ServerIp => _serverIp;
-        public int HttpPort { get; private set; }
+        public string ServerIp  => _serverIp;
+        public int    HttpPort  { get; private set; }
+        public bool   IsConnected => _ws?.State == System.Net.WebSockets.WebSocketState.Open;
 
         public async Task ConnectAsync(string ip, int wsPort, int httpPort)
         {

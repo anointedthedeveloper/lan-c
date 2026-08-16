@@ -65,18 +65,23 @@ namespace LanServer
 
         private void StartHttp()
         {
-            // Try http://+:port/ first (works without admin on most machines via netsh or Windows defaults)
-            // Fall back to localhost if that also fails
-            foreach (var prefix in new[] { $"http://+:{Config.Current.HttpPort}/", $"http://localhost:{Config.Current.HttpPort}/" })
+            // Priority order: wildcard (needs admin or netsh acl) → star → localhost
+            foreach (var prefix in new[]
+            {
+                $"http://+:{Config.Current.HttpPort}/",
+                $"http://*:{Config.Current.HttpPort}/",
+                $"http://localhost:{Config.Current.HttpPort}/"
+            })
             {
                 try
                 {
                     _http = new HttpListener();
                     _http.Prefixes.Add(prefix);
                     _http.AuthenticationSchemes = AuthenticationSchemes.Anonymous;
+                    _http.IgnoreWriteExceptions = true;
                     _http.Start();
                     Task.Run(HttpLoop);
-                    var scope = prefix.Contains("+") ? "all interfaces" : "localhost only";
+                    var scope = prefix.Contains("+") || prefix.Contains("*") ? "all interfaces" : "localhost only";
                     LogMessage?.Invoke($"HTTP server listening on port {Config.Current.HttpPort} ({scope})");
                     return;
                 }
@@ -107,6 +112,15 @@ namespace LanServer
             try
             {
                 var path = ctx.Request.Url?.AbsolutePath.TrimStart('/') ?? "";
+
+                // Silently ignore browser noise (favicon, well-known, etc.)
+                if (path.Equals("favicon.ico", StringComparison.OrdinalIgnoreCase) ||
+                    path.StartsWith(".well-known", StringComparison.OrdinalIgnoreCase))
+                {
+                    ctx.Response.StatusCode = 204; // No Content — no error in browser console
+                    return;
+                }
+
                 if (string.IsNullOrEmpty(path))
                 {
                     ServeIndexPage(ctx);
@@ -139,16 +153,23 @@ namespace LanServer
 
         private static void ServeIndexPage(HttpListenerContext ctx)
         {
-            var files = FileManager.GetFiles();
+            var files    = FileManager.GetFiles();
             var template = LoadAsset("index.html");
 
             var tableHtml = files.Count == 0
-                ? "<div class=\"empty\">No files uploaded yet.</div>"
+                ? """
+                  <div class="empty">
+                    <div class="empty-icon">▤</div>
+                    <div class="empty-text">No files uploaded yet.</div>
+                    <div class="empty-sub">Upload installer packages from the server control panel.</div>
+                  </div>
+                  """
                 : BuildFileTable(files);
 
             var html = template
                 .Replace("{{FILE_COUNT}}", files.Count.ToString())
-                .Replace("{{FILE_TABLE}}", tableHtml);
+                .Replace("{{FILE_TABLE}}", tableHtml)
+                .Replace("{{HTTP_PORT}}",  Config.Current.HttpPort.ToString());
 
             WriteHtml(ctx, html, 200);
         }
@@ -160,13 +181,26 @@ namespace LanServer
 
         private static string BuildFileTable(List<ManagedFile> files)
         {
-            var sb = new StringBuilder("<table><thead><tr><th>File</th><th>Size</th><th></th></tr></thead><tbody>");
+            var sb = new StringBuilder();
+            sb.Append("<table><thead><tr><th>File</th><th>Size</th><th>Action</th></tr></thead><tbody>");
             foreach (var f in files)
             {
-                var ext = Path.GetExtension(f.FileName).TrimStart('.').ToUpper();
+                var ext     = Path.GetExtension(f.FileName).TrimStart('.').ToUpper();
                 if (string.IsNullOrEmpty(ext)) ext = "FILE";
                 var escaped = Uri.EscapeDataString(f.FileName);
-                sb.Append($"""<tr><td><span class="file-icon">{ext}</span><span class="file-name">{f.FileName}</span></td><td class="file-size">{f.FileSize / 1024} KB</td><td><a class="dl-btn" href="/{escaped}">&#8595; Download</a></td></tr>""");
+                var sizeStr = f.FileSize >= 1024 * 1024
+                    ? $"{f.FileSize / 1024.0 / 1024.0:F1} MB"
+                    : $"{f.FileSize / 1024} KB";
+                sb.Append($"""
+                    <tr>
+                      <td><div class="file-cell">
+                        <span class="file-badge">{ext}</span>
+                        <span class="file-name">{System.Web.HttpUtility.HtmlEncode(f.FileName)}</span>
+                      </div></td>
+                      <td class="file-size">{sizeStr}</td>
+                      <td><a class="dl-btn" href="/{escaped}">&#8595; Download</a></td>
+                    </tr>
+                    """);
             }
             sb.Append("</tbody></table>");
             return sb.ToString();

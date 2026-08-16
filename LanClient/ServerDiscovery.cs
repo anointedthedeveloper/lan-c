@@ -7,47 +7,79 @@ namespace LanClient
     public class ServerDiscovery
     {
         private const int UdpPort = 5002;
-        private bool _running;
+        private CancellationTokenSource? _cts;
 
         public event Action<string, int, int>? ServerFound; // ip, wsPort, httpPort
 
         public void Start()
         {
-            _running = true;
-            Task.Run(ListenLoop);
-            Task.Run(DiscoverLoop);
+            // Cancel any previous run first
+            Stop();
+            _cts = new CancellationTokenSource();
+            var token = _cts.Token;
+            Task.Run(() => ListenLoop(token),   token);
+            Task.Run(() => DiscoverLoop(token), token);
         }
 
-        public void Stop() => _running = false;
-
-        private async Task ListenLoop()
+        public void Stop()
         {
-            using var udp = new UdpClient(UdpPort);
-            udp.EnableBroadcast = true;
-            while (_running)
+            try { _cts?.Cancel(); } catch { }
+            _cts = null;
+        }
+
+        // Listens for the server's broadcast beacon ("LANC_SERVER:ws:http")
+        private async Task ListenLoop(CancellationToken token)
+        {
+            UdpClient? udp = null;
+            try
             {
-                try
+                udp = new UdpClient();
+                // Allow sharing the port so server and client can both run on same machine
+                udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                udp.Client.Bind(new IPEndPoint(IPAddress.Any, UdpPort));
+                udp.EnableBroadcast = true;
+                udp.Client.ReceiveTimeout = 0;
+
+                while (!token.IsCancellationRequested)
                 {
-                    var result = await udp.ReceiveAsync();
-                    var msg = Encoding.UTF8.GetString(result.Buffer);
-                    ParseAndNotify(msg, result.RemoteEndPoint.Address.ToString());
+                    try
+                    {
+                        // ReceiveAsync doesn't accept a token, so we use a Task.WhenAny workaround
+                        var receiveTask = udp.ReceiveAsync();
+                        var cancelTask  = Task.Delay(Timeout.Infinite, token);
+                        var done        = await Task.WhenAny(receiveTask, cancelTask);
+                        if (done == cancelTask || token.IsCancellationRequested) break;
+
+                        var result = await receiveTask;
+                        var msg    = Encoding.UTF8.GetString(result.Buffer);
+                        ParseAndNotify(msg, result.RemoteEndPoint.Address.ToString());
+                    }
+                    catch (OperationCanceledException) { break; }
+                    catch { await Task.Delay(500, token).ContinueWith(_ => { }); }
                 }
-                catch { await Task.Delay(500); }
             }
+            catch { }
+            finally { udp?.Close(); }
         }
 
-        private async Task DiscoverLoop()
+        // Actively sends LANC_DISCOVER every 3 seconds
+        private async Task DiscoverLoop(CancellationToken token)
         {
-            using var udp = new UdpClient();
-            udp.EnableBroadcast = true;
-            var msg = Encoding.UTF8.GetBytes("LANC_DISCOVER");
-            var endpoint = new IPEndPoint(IPAddress.Broadcast, UdpPort);
-            while (_running)
+            try
             {
-                try { await udp.SendAsync(msg, msg.Length, endpoint); }
-                catch { }
-                await Task.Delay(5000);
+                using var udp = new UdpClient();
+                udp.EnableBroadcast = true;
+                var msg      = Encoding.UTF8.GetBytes("LANC_DISCOVER");
+                var endpoint = new IPEndPoint(IPAddress.Broadcast, UdpPort);
+
+                while (!token.IsCancellationRequested)
+                {
+                    try { await udp.SendAsync(msg, msg.Length, endpoint); }
+                    catch { }
+                    await Task.Delay(3000, token).ContinueWith(_ => { }); // swallow cancellation
+                }
             }
+            catch { }
         }
 
         private void ParseAndNotify(string msg, string ip)

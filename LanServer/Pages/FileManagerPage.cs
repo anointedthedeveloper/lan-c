@@ -180,7 +180,7 @@ namespace LanServer.Pages
         {
             if (_table.SelectedItems.Count == 0) return;
             var fileName = _table.SelectedItems[0].Tag?.ToString() ?? "";
-            if (!ConfirmDialog.Ask(FindForm(), "Delete File?", $"This will permanently remove '{fileName}'.", "Delete File")) return;
+            if (!ConfirmDialog.Ask(FindForm()!, "Delete File?", $"This will permanently remove '{fileName}'.", "Delete File")) return;
             FileManager.DeleteFile(fileName);
             AppState.Log($"Deleted: {fileName}", LogLevel.Warning);
             ToastManager.Show($"'{fileName}' deleted.", ToastKind.Warning);

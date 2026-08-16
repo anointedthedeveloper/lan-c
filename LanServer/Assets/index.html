@@ -3,219 +3,375 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LanC File Server</title>
+<title>LanC — File Server</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg-base:    #0a0e1a;
-    --bg-card:    #10162a;
-    --bg-row:     #141e36;
-    --bg-row-alt: #111828;
-    --accent:     #1e64c8;
-    --accent-lt:  #64b4ff;
-    --text:       #dce6ff;
-    --muted:      #6478aa;
-    --border:     #1e3258;
-    --green:      #16be6e;
+    --bg:         #f5f7fa;
+    --bg-card:    #ffffff;
+    --bg-card2:   #f8fafd;
+    --bg-row:     #f0f5ff;
+    --border:     #e2e8f0;
+    --blue:       #2563eb;
+    --blue-lt:    #3b82f6;
+    --blue-dim:   #1d4ed8;
+    --blue-soft:  #eff6ff;
+    --green:      #059669;
+    --green-soft: #ecfdf5;
+    --red:        #dc2626;
+    --amber:      #d97706;
+    --text:       #0f172a;
+    --text-sec:   #475569;
+    --text-muted: #94a3b8;
+    --shadow:     0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md:  0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+    --radius:     10px;
   }
+
+  html, body { height: 100%; }
 
   body {
-    background: var(--bg-base);
+    background: var(--bg);
     color: var(--text);
-    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
   }
 
+  /* ── Header ─────────────────────────────────────────────────────────────── */
   header {
     background: var(--bg-card);
-    border-bottom: 2px solid var(--accent);
+    border-bottom: 1px solid var(--border);
     padding: 0 32px;
-    height: 60px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: var(--shadow);
+  }
+
+  .logo-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  .logo-accent {
+    width: 4px;
+    height: 26px;
+    background: var(--blue);
+    border-radius: 2px;
+    margin-right: 12px;
+  }
+
+  .logo-mark {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+
+  .logo-sep {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+    margin: 0 14px;
+  }
+
+  .logo-sub {
+    font-size: 0.82rem;
+    color: var(--text-sec);
+    font-weight: 500;
+  }
+
+  .header-right {
+    margin-left: auto;
     display: flex;
     align-items: center;
     gap: 12px;
   }
 
-  header .logo {
-    font-size: 1.4rem;
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--green-soft);
+    border: 1px solid rgba(5, 150, 105, 0.25);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 0.78rem;
     font-weight: 700;
-    color: #fff;
-    letter-spacing: 1px;
+    color: var(--green);
   }
 
-  header .logo span {
-    color: var(--accent-lt);
-    font-weight: 400;
-    font-size: 0.9rem;
-    margin-left: 10px;
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2.2s ease-in-out infinite;
+    box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.4);
   }
 
-  .container {
-    max-width: 860px;
-    margin: 40px auto;
-    padding: 0 20px;
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(5,150,105,0.4); }
+    50%  { box-shadow: 0 0 0 5px rgba(5,150,105,0); }
+    100% { box-shadow: 0 0 0 0 rgba(5,150,105,0); }
   }
 
-  .card {
-    background: var(--bg-card);
+  .file-count-badge {
+    font-size: 0.78rem;
+    color: var(--text-sec);
+    background: var(--bg-card2);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;
+    border-radius: 12px;
+    padding: 4px 12px;
+    font-weight: 600;
   }
 
-  .card-header {
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--border);
+  /* ── Main ────────────────────────────────────────────────────────────────── */
+  main {
+    flex: 1;
+    max-width: 980px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 36px 24px 52px;
+  }
+
+  .section-header {
     display: flex;
     align-items: center;
     gap: 10px;
+    margin-bottom: 14px;
   }
 
-  .card-header .bar {
-    width: 3px;
-    height: 18px;
-    background: var(--accent);
-    border-radius: 2px;
+  .section-title {
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
   }
 
-  .card-header h2 {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--accent-lt);
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
   }
 
-  .card-header .count {
-    margin-left: auto;
-    font-size: 0.8rem;
-    color: var(--muted);
+  /* ── Card ────────────────────────────────────────────────────────────────── */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: box-shadow 0.2s ease;
   }
 
+  .card:hover {
+    box-shadow: var(--shadow-md);
+  }
+
+  /* ── Table ───────────────────────────────────────────────────────────────── */
   table {
     width: 100%;
     border-collapse: collapse;
   }
 
   thead th {
-    background: var(--bg-base);
-    color: var(--muted);
-    font-size: 0.75rem;
-    font-weight: 600;
+    background: var(--bg-card2);
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 10px 20px;
+    letter-spacing: 0.08em;
+    padding: 11px 20px;
     text-align: left;
     border-bottom: 1px solid var(--border);
   }
 
+  thead th:last-child { text-align: right; }
+
   tbody tr {
     border-bottom: 1px solid var(--border);
-    transition: background 0.15s;
+    transition: background 0.14s ease, transform 0.1s ease;
   }
-
-  tbody tr:nth-child(even) { background: var(--bg-row-alt); }
-  tbody tr:hover { background: var(--bg-row); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover {
+    background: var(--bg-row);
+  }
 
   tbody td {
-    padding: 12px 20px;
-    font-size: 0.9rem;
+    padding: 14px 20px;
+    vertical-align: middle;
   }
 
-  .file-icon {
-    display: inline-block;
-    width: 28px;
-    height: 28px;
-    background: var(--accent);
-    border-radius: 5px;
-    text-align: center;
-    line-height: 28px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: #fff;
-    margin-right: 10px;
-    vertical-align: middle;
-    text-transform: uppercase;
+  tbody td:last-child { text-align: right; }
+
+  /* File cell */
+  .file-cell { display: flex; align-items: center; gap: 14px; }
+
+  .file-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    background: var(--blue-soft);
+    border: 1px solid rgba(37, 99, 235, 0.2);
+    border-radius: 8px;
+    font-size: 0.62rem;
+    font-weight: 900;
+    color: var(--blue-lt);
+    letter-spacing: 0.03em;
+    flex-shrink: 0;
+    transition: background 0.14s, transform 0.1s;
+  }
+
+  tbody tr:hover .file-badge {
+    background: rgba(37, 99, 235, 0.12);
+    transform: scale(1.05);
   }
 
   .file-name {
-    vertical-align: middle;
+    font-weight: 600;
     color: var(--text);
   }
 
-  .file-size {
-    color: var(--muted);
-    font-size: 0.85rem;
+  .file-meta {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 2px;
   }
 
+  .file-size {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  /* Download button */
   .dl-btn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: var(--accent);
+    background: var(--blue);
     color: #fff;
     text-decoration: none;
-    padding: 6px 16px;
-    border-radius: 5px;
-    font-size: 0.82rem;
-    font-weight: 600;
-    transition: background 0.15s;
+    padding: 7px 18px;
+    border-radius: 7px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    transition: background 0.15s, transform 0.12s, box-shadow 0.15s;
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(37,99,235,0.25);
+  }
+  .dl-btn:hover  {
+    background: var(--blue-dim);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+  }
+  .dl-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(37,99,235,0.2);
   }
 
-  .dl-btn:hover { background: #2878e0; }
+  .dl-btn svg { width: 14px; height: 14px; }
 
+  /* Empty state */
   .empty {
-    padding: 48px 20px;
+    padding: 72px 24px;
     text-align: center;
-    color: var(--muted);
-    font-size: 0.9rem;
+    color: var(--text-muted);
   }
+  .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.3;
+    display: block;
+  }
+  .empty-text { font-size: 1rem; font-weight: 600; color: var(--text-sec); }
+  .empty-sub  { font-size: 0.82rem; margin-top: 6px; color: var(--text-muted); }
 
+  /* ── Footer ──────────────────────────────────────────────────────────────── */
   footer {
-    text-align: center;
-    color: var(--muted);
-    font-size: 0.78rem;
-    margin-top: 32px;
-    padding-bottom: 32px;
+    border-top: 1px solid var(--border);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--bg-card);
+  }
+  footer strong { color: var(--text-sec); }
+  footer a { color: var(--blue-lt); text-decoration: none; font-weight: 600; }
+  footer a:hover { text-decoration: underline; }
+
+  /* ── Fade-in animation ───────────────────────────────────────────────────── */
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 
-  .status-dot {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    background: var(--green);
-    border-radius: 50%;
-    margin-right: 6px;
-    animation: pulse 2s infinite;
+  .card { animation: fadeSlideIn 0.3s ease both; }
+
+  tbody tr {
+    animation: fadeSlideIn 0.25s ease both;
   }
 
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
+  tbody tr:nth-child(1)  { animation-delay: 0.03s; }
+  tbody tr:nth-child(2)  { animation-delay: 0.06s; }
+  tbody tr:nth-child(3)  { animation-delay: 0.09s; }
+  tbody tr:nth-child(4)  { animation-delay: 0.12s; }
+  tbody tr:nth-child(5)  { animation-delay: 0.15s; }
+  tbody tr:nth-child(6)  { animation-delay: 0.18s; }
+  tbody tr:nth-child(7)  { animation-delay: 0.21s; }
+  tbody tr:nth-child(8)  { animation-delay: 0.24s; }
+  tbody tr:nth-child(9)  { animation-delay: 0.27s; }
+  tbody tr:nth-child(10) { animation-delay: 0.30s; }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="logo">LanC <span>File Server</span></div>
-  <div style="margin-left:auto;font-size:0.82rem;color:var(--muted)">
-    <span class="status-dot"></span>Online
+  <div class="logo-wrapper">
+    <div class="logo-accent"></div>
+    <span class="logo-mark">LanC</span>
+    <div class="logo-sep"></div>
+    <span class="logo-sub">File Server</span>
+  </div>
+  <div class="header-right">
+    <span class="file-count-badge">{{FILE_COUNT}} file(s)</span>
+    <div class="status-pill">
+      <div class="status-dot"></div>
+      Online
+    </div>
   </div>
 </header>
 
-<div class="container">
+<main>
+  <div class="section-header">
+    <span class="section-title">Available Files</span>
+    <div class="section-line"></div>
+  </div>
   <div class="card">
-    <div class="card-header">
-      <div class="bar"></div>
-      <h2>Available Files</h2>
-      <span class="count">{{FILE_COUNT}} file(s)</span>
-    </div>
-
     {{FILE_TABLE}}
   </div>
+</main>
 
-  <footer>LanC &mdash; LAN Command &amp; Control &mdash; Offline Network Management</footer>
-</div>
+<footer>
+  <span><strong>LanC</strong> &mdash; LAN Command &amp; Control</span>
+  <span>Port <strong>{{HTTP_PORT}}</strong></span>
+</footer>
 
 </body>
 </html>
