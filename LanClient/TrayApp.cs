@@ -58,9 +58,12 @@ namespace LanClient
             menu.Items.AddRange(new ToolStripItem[] { openItem, statusItem, sep, exitItem });
             _tray.ContextMenuStrip = menu;
 
-            // Single click or double click both open the dashboard
-            _tray.Click       += (_, _) => ShowDashboard();
-            _tray.DoubleClick += (_, _) => ShowDashboard();
+            // Left single-click opens dashboard; right-click shows menu (handled by ContextMenuStrip)
+            _tray.MouseClick += (_, e) =>
+            {
+                if (e.Button == MouseButtons.Left)
+                    ShowDashboard();
+            };
 
             // ── Wire up client ────────────────────────────────────────────────
             _wsClient.StatusChanged += status =>

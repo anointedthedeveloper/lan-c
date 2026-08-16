@@ -6,12 +6,14 @@ namespace LanServer.Controls
     {
         private static Form? _owner;
         private static readonly List<ToastPopup> _active = new();
-        private const int Margin = 16;
-        private const int ToastH = 56;
+        private const int Margin   = 20;
+        private const int ToastH   = 64;
+        private const int ToastW   = 380;
+        private const int Spacing  = 10;
 
         public static void Init(Form owner) => _owner = owner;
 
-        public static void Show(string message, ToastKind kind = ToastKind.Info, int durationMs = 3500)
+        public static void Show(string message, ToastKind kind = ToastKind.Info, int durationMs = 3800)
         {
             if (_owner == null || _owner.IsDisposed) return;
             if (_owner.InvokeRequired) { _owner.Invoke(() => Show(message, kind, durationMs)); return; }
@@ -23,25 +25,25 @@ namespace LanServer.Controls
 
             // Fade in
             toast.Opacity = 0;
-            var fadeTimer = new System.Windows.Forms.Timer { Interval = 16 };
-            double targetOpacity = 0.97;
-            fadeTimer.Tick += (_, _) =>
+            var fadeIn = new System.Windows.Forms.Timer { Interval = 14 };
+            fadeIn.Tick += (_, _) =>
             {
-                toast.Opacity += 0.08;
-                if (toast.Opacity >= targetOpacity) { toast.Opacity = targetOpacity; fadeTimer.Stop(); fadeTimer.Dispose(); }
+                if (toast.IsDisposed) { fadeIn.Stop(); fadeIn.Dispose(); return; }
+                toast.Opacity += 0.1;
+                if (toast.Opacity >= 0.97) { toast.Opacity = 0.97; fadeIn.Stop(); fadeIn.Dispose(); }
             };
-            fadeTimer.Start();
+            fadeIn.Start();
 
-            var holdTimer = new System.Windows.Forms.Timer { Interval = durationMs };
-            holdTimer.Tick += (_, _) =>
+            // Hold then fade out
+            var hold = new System.Windows.Forms.Timer { Interval = durationMs };
+            hold.Tick += (_, _) =>
             {
-                holdTimer.Stop(); holdTimer.Dispose();
-                // Fade out
-                var fadeOut = new System.Windows.Forms.Timer { Interval = 16 };
+                hold.Stop(); hold.Dispose();
+                var fadeOut = new System.Windows.Forms.Timer { Interval = 14 };
                 fadeOut.Tick += (_, _) =>
                 {
                     if (toast.IsDisposed) { fadeOut.Stop(); fadeOut.Dispose(); return; }
-                    toast.Opacity -= 0.08;
+                    toast.Opacity -= 0.07;
                     if (toast.Opacity <= 0)
                     {
                         fadeOut.Stop(); fadeOut.Dispose();
@@ -52,7 +54,7 @@ namespace LanServer.Controls
                 };
                 fadeOut.Start();
             };
-            holdTimer.Start();
+            hold.Start();
         }
 
         private static void Restack()
@@ -61,8 +63,9 @@ namespace LanServer.Controls
             int y = _owner.Bottom - Margin;
             foreach (var t in _active)
             {
-                y -= ToastH + 8;
-                t.Left = _owner.Right - t.Width - Margin;
+                if (t.IsDisposed) continue;
+                y -= ToastH + Spacing;
+                t.Left = _owner.Right - ToastW - Margin;
                 t.Top  = y;
             }
         }
@@ -75,65 +78,91 @@ namespace LanServer.Controls
             FormBorderStyle = FormBorderStyle.None;
             ShowInTaskbar   = false;
             TopMost         = true;
-            Width           = 360;
-            Height          = 56;
-            BackColor       = Theme.BgCard;
+            Width           = 380;
+            Height          = 64;
 
-            var accent = kind switch
+            var (accent, softBg, iconChar, iconFont) = kind switch
             {
-                ToastKind.Success => Theme.Green,
-                ToastKind.Warning => Theme.Amber,
-                ToastKind.Error   => Theme.Red,
-                _                 => Theme.Blue
-            };
-
-            var softBg = kind switch
-            {
-                ToastKind.Success => Theme.GreenSoft,
-                ToastKind.Warning => Theme.AmberSoft,
-                ToastKind.Error   => Theme.RedSoft,
-                _                 => Theme.BlueSoft
-            };
-
-            var icon = kind switch
-            {
-                ToastKind.Success => "✓",
-                ToastKind.Warning => "⚠",
-                ToastKind.Error   => "✕",
-                _                 => "ℹ"
+                ToastKind.Success => (Theme.Green,   Theme.GreenSoft,  "✓", new Font("Segoe UI", 13f, FontStyle.Bold)),
+                ToastKind.Warning => (Theme.Amber,   Theme.AmberSoft,  "!", new Font("Segoe UI", 13f, FontStyle.Bold)),
+                ToastKind.Error   => (Theme.Red,     Theme.RedSoft,    "✕", new Font("Segoe UI", 13f, FontStyle.Bold)),
+                _                 => (Theme.Blue,    Theme.BlueSoft,   "i", new Font("Segoe UI", 13f, FontStyle.Italic))
             };
 
             BackColor = softBg;
 
+            // Drop shadow via layered window trick
+            SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true);
+
             Paint += (_, e) =>
             {
-                using var pen = new Pen(Color.FromArgb(60, accent.R, accent.G, accent.B), 1.5f);
-                e.Graphics.DrawRectangle(pen, 0, 0, Width - 1, Height - 1);
-                using var bar = new SolidBrush(accent);
-                e.Graphics.FillRectangle(bar, 0, 0, 4, Height);
+                var g = e.Graphics;
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+                // Border
+                using var borderPen = new Pen(Color.FromArgb(80, accent.R, accent.G, accent.B), 1.5f);
+                g.DrawRectangle(borderPen, 0, 0, Width - 1, Height - 1);
+
+                // Left accent stripe
+                using var stripeB = new SolidBrush(accent);
+                g.FillRectangle(stripeB, 0, 0, 5, Height);
+
+                // Icon circle background
+                float cx = 34f, cy = Height / 2f, r = 14f;
+                using var circleBg = new SolidBrush(Color.FromArgb(40, accent.R, accent.G, accent.B));
+                g.FillEllipse(circleBg, cx - r, cy - r, r * 2, r * 2);
             };
 
+            // Icon label (centered in circle at x=34)
             var iconLbl = new Label
             {
-                Text = icon,
+                Text      = iconChar,
                 ForeColor = accent,
-                Font = new Font("Segoe UI", 12f, FontStyle.Bold),
-                AutoSize = true,
-                Left = 16, Top = 14,
+                Font      = iconFont,
+                AutoSize  = true,
                 BackColor = Color.Transparent
             };
+            iconLbl.Left = 34 - (iconLbl.Width > 0 ? iconLbl.Width / 2 : 8);
+            iconLbl.Top  = (64 - iconLbl.Height) / 2;
+
+            // Re-center after layout
+            void CenterIcon() {
+                iconLbl.Left = 34 - iconLbl.Width / 2;
+                iconLbl.Top  = (Height - iconLbl.Height) / 2;
+            }
+            iconLbl.SizeChanged += (_, _) => CenterIcon();
+
+            // Message label
             var msgLbl = new Label
             {
-                Text = message,
+                Text      = message,
                 ForeColor = Theme.TextPrimary,
-                Font = Theme.FontBase,
-                Left = 40, Top = 18,
-                Width = 304,
-                AutoSize = false,
+                Font      = Theme.FontBase,
+                Left      = 60,
+                Top       = 14,
+                Width     = 300,
+                Height    = 36,
+                AutoSize  = false,
                 BackColor = Color.Transparent
             };
 
-            Controls.AddRange(new Control[] { iconLbl, msgLbl });
+            // Close button
+            var closeBtn = new Label
+            {
+                Text      = "×",
+                Font      = new Font("Segoe UI", 14f),
+                ForeColor = Theme.TextMuted,
+                AutoSize  = true,
+                Left      = 352,
+                Top       = 4,
+                BackColor = Color.Transparent,
+                Cursor    = Cursors.Hand
+            };
+            closeBtn.MouseEnter += (_, _) => closeBtn.ForeColor = Theme.TextPrimary;
+            closeBtn.MouseLeave += (_, _) => closeBtn.ForeColor = Theme.TextMuted;
+            closeBtn.Click += (_, _) => { Opacity = 0; Close(); };
+
+            Controls.AddRange(new Control[] { iconLbl, msgLbl, closeBtn });
         }
     }
 }

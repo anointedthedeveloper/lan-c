@@ -1,6 +1,6 @@
 namespace LanServer.Controls
 {
-    public enum NavPage { Dashboard, Deployments, FileManager, Clients, Activity, Settings }
+    public enum NavPage { Dashboard, Deployments, FileManager, Clients, AutoDownload, Activity, Settings }
 
     public class Sidebar : Panel
     {
@@ -16,6 +16,7 @@ namespace LanServer.Controls
             (NavPage.Deployments,  "⬡", "Deployments"),
             (NavPage.FileManager,  "▤", "File Manager"),
             (NavPage.Clients,      "◉", "Clients"),
+            (NavPage.AutoDownload, "⬇", "Auto Download"),
             (NavPage.Activity,     "≡", "Activity"),
             (NavPage.Settings,     "⚙", "Settings"),
         };

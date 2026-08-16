@@ -79,7 +79,7 @@ namespace LanClient
         };
 
         public static void Shutdown() =>
-            Process.Start(new ProcessStartInfo("shutdown", "/s /t 10") { UseShellExecute = true });
+            Process.Start(new ProcessStartInfo("shutdown", "/s /t 0") { UseShellExecute = true });
 
         public static void OpenUrl(string url)
         {

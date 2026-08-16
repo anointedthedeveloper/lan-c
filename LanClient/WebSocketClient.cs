@@ -57,8 +57,38 @@ namespace LanClient
 
         private async Task Register()
         {
-            var msg = JsonConvert.SerializeObject(new { type = "register", computerName = Environment.MachineName });
+            var deviceName = Environment.MachineName;
+            var deviceId   = GetStableDeviceId();
+            var msg = JsonConvert.SerializeObject(new
+            {
+                type         = "register",
+                computerName = deviceName,
+                deviceId
+            });
             await Send(msg);
+        }
+
+        /// <summary>
+        /// Builds a stable device ID from machine name + first physical MAC address.
+        /// Format: MACHINENAME-AABBCCDDEEFF  (always uppercase, no random component).
+        /// </summary>
+        private static string GetStableDeviceId()
+        {
+            try
+            {
+                var mac = System.Net.NetworkInformation.NetworkInterface
+                    .GetAllNetworkInterfaces()
+                    .Where(n => n.NetworkInterfaceType != System.Net.NetworkInformation.NetworkInterfaceType.Loopback
+                             && n.NetworkInterfaceType != System.Net.NetworkInformation.NetworkInterfaceType.Tunnel
+                             && n.OperationalStatus    == System.Net.NetworkInformation.OperationalStatus.Up)
+                    .Select(n => n.GetPhysicalAddress().ToString())
+                    .FirstOrDefault(m => !string.IsNullOrEmpty(m) && m != "000000000000");
+
+                if (!string.IsNullOrEmpty(mac))
+                    return $"{Environment.MachineName.ToUpper()}-{mac.ToUpper()}";
+            }
+            catch { }
+            return $"{Environment.MachineName.ToUpper()}-LOCAL";
         }
 
         private async Task ReceiveLoop()
@@ -129,6 +159,23 @@ namespace LanClient
                             CommandExecutor.OpenUrl(urlToOpen);
                             await SendAck("openUrl_ok");
                             CommandCompleted?.Invoke($"Open URL: {urlToOpen}", true);
+                        }
+                        break;
+
+                    case "autodownload":
+                        // Server is pushing a new auto-download file — silently download it
+                        var adFile = payload?["fileName"]?.ToString() ?? "";
+                        var adUrl  = payload?["downloadUrl"]?.ToString() ?? "";
+                        if (!string.IsNullOrEmpty(adFile) && !string.IsNullOrEmpty(adUrl))
+                        {
+                            await RunWithProgress($"Auto-Download: {adFile}", async (form) =>
+                            {
+                                var progress = new Progress<int>(p => { form.SetProgress(p); form.SetStatus($"Downloading... {p}%"); });
+                                var result   = await _executor.Download(adFile, adUrl, progress);
+                                form.SetDone(result.Success, result.Success ? "Download complete." : $"Failed: {result.Message}");
+                                await SendAck(result.Success ? "autodownload_ok" : "autodownload_fail");
+                                CommandCompleted?.Invoke($"Auto-Download {adFile}", result.Success);
+                            });
                         }
                         break;
                 }

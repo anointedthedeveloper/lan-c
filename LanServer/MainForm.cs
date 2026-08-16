@@ -61,6 +61,7 @@ namespace LanServer
                 NavPage.Deployments  => new DeploymentsPage(),
                 NavPage.FileManager  => new FileManagerPage(),
                 NavPage.Clients      => new ClientsPage(),
+                NavPage.AutoDownload => new AutoDownloadPage(),
                 NavPage.Activity     => new ActivityPage(),
                 NavPage.Settings     => new SettingsPage(),
                 _                    => BuildDashboard()

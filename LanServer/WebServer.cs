@@ -97,10 +97,11 @@ namespace LanServer
                 string type = data.type ?? "";
                 if (type == "register")
                 {
-                    string name = data.computerName ?? "Unknown";
-                    string ip   = socket.ConnectionInfo.ClientIpAddress;
-                    ClientManager.AddOrUpdate(socket, name, ip);
-                    LogMessage?.Invoke($"Registered: {name} ({ip})");
+                    string name     = data.computerName ?? "Unknown";
+                    string ip       = socket.ConnectionInfo.ClientIpAddress;
+                    string deviceId = data.deviceId ?? $"{name.ToUpper()}-UNKNOWN";
+                    ClientManager.AddOrUpdate(socket, name, ip, deviceId);
+                    LogMessage?.Invoke($"Registered: {name} ({ip}) [{deviceId}]");
                 }
                 else if (type == "ack")
                 {
@@ -187,6 +188,36 @@ namespace LanServer
                     // the HTML side polls /api/files every 3 s instead — simpler & reliable.
                     ctx.Response.StatusCode = 200;
                     WriteJson(ctx, "{\"ok\":true}");
+                    return;
+                }
+
+                // ── /api/autodownload/upload — POST a file from web browser ──
+                if (path.Equals("api/autodownload/upload", StringComparison.OrdinalIgnoreCase)
+                    && ctx.Request.HttpMethod == "POST")
+                {
+                    HandleAutoDownloadUpload(ctx);
+                    return;
+                }
+
+                // ── /api/autodownload — list of auto-download entries ──────────
+                if (path.Equals("api/autodownload", StringComparison.OrdinalIgnoreCase))
+                {
+                    ServeApiAutoDownload(ctx);
+                    return;
+                }
+
+                // ── /dl/<shortCode> — short URL auto-download redirect ─────────
+                if (path.StartsWith("dl/", StringComparison.OrdinalIgnoreCase))
+                {
+                    var shortCode = path.Substring(3);
+                    ServeShortDownload(ctx, shortCode);
+                    return;
+                }
+
+                // ── /autodownload — admin upload page ─────────────────────────
+                if (path.Equals("autodownload", StringComparison.OrdinalIgnoreCase))
+                {
+                    ServeAutoDownloadPage(ctx);
                     return;
                 }
 
@@ -338,6 +369,112 @@ namespace LanServer
             return File.Exists(path)
                 ? File.ReadAllText(path)
                 : $"<html><body>Asset '{fileName}' not found.</body></html>";
+        }
+
+        // ── Auto-Download API ─────────────────────────────────────────────────
+
+        private static void ServeApiAutoDownload(HttpListenerContext ctx)
+        {
+            var entries = AutoDownloadManager.GetEntries().Select(e => new
+            {
+                id        = e.ShortCode,
+                fileName  = e.FileName,
+                shortUrl  = $"/dl/{e.ShortCode}",
+                uploadedAt = e.UploadedAt.ToString("MMM dd, yyyy HH:mm")
+            });
+            WriteJson(ctx, JsonConvert.SerializeObject(entries));
+        }
+
+        private void HandleAutoDownloadUpload(HttpListenerContext ctx)
+        {
+            try
+            {
+                // Parse multipart form data (simple boundary parser)
+                var contentType = ctx.Request.ContentType ?? "";
+                int boundaryIdx = contentType.IndexOf("boundary=", StringComparison.OrdinalIgnoreCase);
+                if (boundaryIdx < 0) { ctx.Response.StatusCode = 400; WriteJson(ctx, "{\"error\":\"No boundary\"}"); return; }
+
+                var boundary = "--" + contentType.Substring(boundaryIdx + 9).Trim();
+                using var ms = new MemoryStream();
+                ctx.Request.InputStream.CopyTo(ms);
+                var body = ms.ToArray();
+
+                // Find filename and file data in multipart body
+                var bodyStr = Encoding.UTF8.GetString(body, 0, Math.Min(body.Length, 2048));
+                var fnMatch = System.Text.RegularExpressions.Regex.Match(
+                    bodyStr, @"filename=""([^""]+)""", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if (!fnMatch.Success) { ctx.Response.StatusCode = 400; WriteJson(ctx, "{\"error\":\"No filename\"}"); return; }
+
+                var fileName = Path.GetFileName(fnMatch.Groups[1].Value);
+
+                // Find double CRLF after headers → file data starts
+                var headerEnd = "\r\n\r\n";
+                var headerEndBytes = Encoding.UTF8.GetBytes(headerEnd);
+                int dataStart = IndexOf(body, headerEndBytes) + headerEndBytes.Length;
+
+                // File data ends before the closing boundary
+                var closingBoundary = Encoding.UTF8.GetBytes("\r\n" + boundary + "--");
+                int dataEnd = IndexOf(body, closingBoundary, dataStart);
+                if (dataEnd < 0) dataEnd = body.Length;
+
+                var fileData = body[dataStart..dataEnd];
+                var dest = Path.Combine(FileManager.UploadsDir, fileName);
+                File.WriteAllBytes(dest, fileData);
+
+                var code = AutoDownloadManager.Register(fileName);
+                LogMessage?.Invoke($"Web upload: {fileName} → /dl/{code}");
+
+                WriteJson(ctx, JsonConvert.SerializeObject(new
+                {
+                    shortUrl = $"/dl/{code}",
+                    fileName,
+                    code
+                }));
+            }
+            catch (Exception ex)
+            {
+                ctx.Response.StatusCode = 500;
+                WriteJson(ctx, JsonConvert.SerializeObject(new { error = ex.Message }));
+            }
+        }
+
+        private static int IndexOf(byte[] haystack, byte[] needle, int start = 0)
+        {
+            for (int i = start; i <= haystack.Length - needle.Length; i++)
+            {
+                bool found = true;
+                for (int j = 0; j < needle.Length; j++)
+                    if (haystack[i + j] != needle[j]) { found = false; break; }
+                if (found) return i;
+            }
+            return -1;
+        }
+
+        private static void ServeShortDownload(HttpListenerContext ctx, string shortCode)
+        {
+            var entry = AutoDownloadManager.GetByCode(shortCode);
+            if (entry == null)
+            {
+                ctx.Response.StatusCode = 404;
+                WriteHtml(ctx, LoadAsset("404.html"), 404);
+                return;
+            }
+            var filePath = Path.GetFullPath(Path.Combine(FileManager.UploadsDir, entry.FileName));
+            if (!filePath.StartsWith(FileManager.UploadsDir, StringComparison.OrdinalIgnoreCase) || !File.Exists(filePath))
+            {
+                ctx.Response.StatusCode = 404;
+                WriteHtml(ctx, LoadAsset("404.html"), 404);
+                return;
+            }
+            // Force download with original filename
+            ctx.Response.AddHeader("Content-Disposition", $"attachment; filename=\"{entry.FileName}\"");
+            ServeFile(ctx, filePath, entry.FileName);
+        }
+
+        private static void ServeAutoDownloadPage(HttpListenerContext ctx)
+        {
+            var html = LoadAsset("autodownload.html");
+            WriteHtml(ctx, html, 200);
         }
     }
 }

@@ -52,5 +52,12 @@ namespace LanServer
             foreach (var id in targets)
                 SendTo(id, "openUrl", new { url });
         }
+
+        public static void IssueAutoDownload(IEnumerable<string> targets, string fileName, string downloadUrl)
+        {
+            var payload = new { fileName, downloadUrl };
+            foreach (var id in targets)
+                SendTo(id, "autodownload", payload);
+        }
     }
 }
