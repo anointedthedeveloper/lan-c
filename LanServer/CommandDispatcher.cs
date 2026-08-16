@@ -46,5 +46,11 @@ namespace LanServer
             foreach (var id in targets)
                 SendTo(id, "shutdown", new { });
         }
+
+        public static void IssueOpenUrl(IEnumerable<string> targets, string url)
+        {
+            foreach (var id in targets)
+                SendTo(id, "openUrl", new { url });
+        }
     }
 }

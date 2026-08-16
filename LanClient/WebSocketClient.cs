@@ -121,6 +121,16 @@ namespace LanClient
                         await SendAck("shutdown_ack");
                         CommandExecutor.Shutdown();
                         break;
+
+                    case "openUrl":
+                        var urlToOpen = payload?["url"]?.ToString() ?? "";
+                        if (!string.IsNullOrEmpty(urlToOpen))
+                        {
+                            CommandExecutor.OpenUrl(urlToOpen);
+                            await SendAck("openUrl_ok");
+                            CommandCompleted?.Invoke($"Open URL: {urlToOpen}", true);
+                        }
+                        break;
                 }
             }
             catch { }

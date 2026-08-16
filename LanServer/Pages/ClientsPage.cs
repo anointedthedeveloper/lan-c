@@ -19,39 +19,32 @@ namespace LanServer.Pages
             var header = new PageHeader("Connected Clients", "Monitor devices connected to your LanC server.");
 
             // ── Stats strip ───────────────────────────────────────────────────
-            var statsStrip = new TableLayoutPanel
+            var statsStrip = new Panel
             {
-                Dock        = DockStyle.Top,
-                Height      = 56,
-                ColumnCount = 2,
-                RowCount    = 1,
-                BackColor   = Theme.BgCard,
-                Padding     = new Padding(24, 0, 24, 0)
+                Dock      = DockStyle.Top,
+                Height    = 56,
+                BackColor = Theme.BgCard,
+                Padding   = new Padding(24, 0, 24, 0)
             };
-            statsStrip.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            statsStrip.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             statsStrip.Paint += (_, e) =>
             {
                 using var pen = new Pen(Theme.Border, 1);
                 e.Graphics.DrawLine(pen, 0, statsStrip.Height - 1, statsStrip.Width, statsStrip.Height - 1);
             };
 
-            // Left pills
-            var pillsPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent };
             _totalLbl   = MakePill("Total: 0",   Theme.TextSecond, 0);
             _onlineLbl  = MakePill("Online: 0",  Theme.Green,      96);
             _offlineLbl = MakePill("Offline: 0", Theme.TextMuted,  192);
-            pillsPanel.Controls.AddRange(new Control[] { _totalLbl, _onlineLbl, _offlineLbl });
+            statsStrip.Controls.AddRange(new Control[] { _totalLbl, _onlineLbl, _offlineLbl });
 
-            // Shutdown button right-aligned
-            var shutdownSelBtn = Theme.MakeBtn("⏻  Shutdown Selected", Theme.RedMuted);
-            shutdownSelBtn.Dock    = DockStyle.Right;
-            shutdownSelBtn.Width   = 180;
-            shutdownSelBtn.Margin  = new Padding(0, 11, 0, 11);
-            shutdownSelBtn.Click  += ShutdownSelected_Click;
-
-            statsStrip.Controls.Add(pillsPanel,      0, 0);
-            statsStrip.Controls.Add(shutdownSelBtn,  1, 0);
+            // Shutdown button — right aligned via SizeChanged
+            var shutdownSelBtn = Theme.MakeBtn("⏻  Shutdown Selected", Theme.Red);
+            shutdownSelBtn.Width  = 190;
+            shutdownSelBtn.Height = 34;
+            shutdownSelBtn.Top    = 11;
+            shutdownSelBtn.Click += ShutdownSelected_Click;
+            statsStrip.SizeChanged += (_, _) => shutdownSelBtn.Left = statsStrip.Width - shutdownSelBtn.Width - 24;
+            statsStrip.Controls.Add(shutdownSelBtn);
 
             // ── Table panel ───────────────────────────────────────────────────
             _tablePanel = new Panel

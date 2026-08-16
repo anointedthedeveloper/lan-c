@@ -206,9 +206,9 @@ namespace LanServer.Pages
                 e.Graphics.DrawRectangle(pen, 1, 1, dropZone.Width - 2, dropZone.Height - 2);
             };
 
-            var iconLbl = new Label { Text = "⬆", Font = new Font("Segoe UI", 24f), ForeColor = Theme.Blue, AutoSize = true, Left = 200, Top = 28 };
-            var mainLbl = new Label { Text = "Drag & drop your installer file here", Font = Theme.FontBold, ForeColor = Theme.TextPrimary, AutoSize = true, Left = 100, Top = 80 };
-            var subLbl  = new Label { Text = "or click to browse  ·  .exe  .msi", Font = Theme.FontSm, ForeColor = Theme.TextSecond, AutoSize = true, Left = 150, Top = 106 };
+            var iconLbl = new Label { Text = "⬆", Font = new Font("Segoe UI", 24f), ForeColor = Theme.Blue, AutoSize = true, Left = 200, Top = 28, BackColor = Color.Transparent };
+            var mainLbl = new Label { Text = "Drag & drop any file here", Font = Theme.FontBold, ForeColor = Theme.TextPrimary, AutoSize = true, Left = 130, Top = 78, BackColor = Color.Transparent };
+            var subLbl  = new Label { Text = "or click to browse — supports all file types", Font = Theme.FontSm, ForeColor = Theme.TextSecond, AutoSize = true, Left = 110, Top = 104, BackColor = Color.Transparent };
             dropZone.Controls.AddRange(new Control[] { iconLbl, mainLbl, subLbl });
 
             dropZone.DragEnter += (_, e) => { if (e.Data?.GetDataPresent(DataFormats.FileDrop) == true) e.Effect = DragDropEffects.Copy; };
@@ -219,7 +219,11 @@ namespace LanServer.Pages
             };
             dropZone.Click += (_, _) =>
             {
-                using var dlg = new OpenFileDialog { Filter = "Installers|*.exe;*.msi|All files|*.*" };
+                using var dlg = new OpenFileDialog
+                {
+                    Title = "Select file to deploy",
+                    Filter = "All Files (*.*)|*.*|Installers (*.exe;*.msi)|*.exe;*.msi"
+                };
                 if (dlg.ShowDialog() == DialogResult.OK) { _filePath = dlg.FileName; RefreshStep1Card(p, dropZone); }
             };
 
@@ -248,21 +252,38 @@ namespace LanServer.Pages
         {
             var p = StepPanel();
             int y = 24;
+            bool isInstaller = FileManager.IsInstaller(_filePath ?? "");
 
-            p.Controls.Add(FieldLabel("Application Name", y));
+            p.Controls.Add(FieldLabel("Application / File Name", y));
             _appNameBox = Theme.MakeInput();
             _appNameBox.Text = Path.GetFileNameWithoutExtension(_filePath ?? "");
             _appNameBox.Left = 24; _appNameBox.Top = y + 20; _appNameBox.Width = 460;
             p.Controls.Add(_appNameBox);
             y += 68;
 
-            p.Controls.Add(FieldLabel("Installer Type", y));
-            _typeCombo = Theme.MakeCombo();
-            _typeCombo.Items.AddRange(new[] { "NSIS", "Inno Setup", "MSI", "InstallShield" });
-            _typeCombo.SelectedIndex = 0;
-            _typeCombo.Left = 24; _typeCombo.Top = y + 20; _typeCombo.Width = 220;
-            p.Controls.Add(_typeCombo);
-            y += 68;
+            if (isInstaller)
+            {
+                p.Controls.Add(FieldLabel("Installer Type  (how was this packaged?)", y));
+                _typeCombo = Theme.MakeCombo();
+                _typeCombo.Items.AddRange(new[] { "NSIS", "Inno Setup", "MSI", "InstallShield" });
+                _typeCombo.SelectedIndex = 0;
+                _typeCombo.Left = 24; _typeCombo.Top = y + 20; _typeCombo.Width = 220;
+                p.Controls.Add(_typeCombo);
+                y += 68;
+            }
+            else
+            {
+                // Non-installer: show info label
+                var infoLbl = new Label
+                {
+                    Text = "ℹ  This file will be downloaded to the client's Downloads folder (not installed).",
+                    Font = Theme.FontSm, ForeColor = Theme.Blue,
+                    Left = 24, Top = y, Width = 460, Height = 34,
+                    BackColor = Theme.BlueSoft
+                };
+                p.Controls.Add(infoLbl);
+                y += 44;
+            }
 
             p.Controls.Add(FieldLabel("Deployment Target", y));
             _targetCombo = Theme.MakeCombo();
@@ -279,13 +300,21 @@ namespace LanServer.Pages
         private void BuildStep3()
         {
             var p = StepPanel();
-            var name = Path.GetFileName(_filePath ?? "");
-            var size = _filePath != null ? $"{new FileInfo(_filePath).Length / 1024.0 / 1024.0:F1} MB" : "—";
-            var type = _typeCombo?.SelectedItem?.ToString() ?? "NSIS";
+            bool isInstaller = FileManager.IsInstaller(_filePath ?? "");
+            var name   = Path.GetFileName(_filePath ?? "");
+            var size   = _filePath != null ? $"{new FileInfo(_filePath).Length / 1024.0 / 1024.0:F1} MB" : "—";
+            var type   = isInstaller ? (_typeCombo?.SelectedItem?.ToString() ?? "NSIS") : "Send to Downloads";
+            var action = isInstaller ? "Install silently" : "Download to client";
             var target = _targetCombo?.SelectedItem?.ToString() ?? "All Connected Clients";
 
             int y = 16;
-            foreach (var (label, val) in new[] { ("File", name), ("Size", size), ("Installer Type", type), ("Target", target) })
+            foreach (var (label, val) in new[] {
+                ("File",    name),
+                ("Size",    size),
+                ("Action",  action),
+                ("Type",    type),
+                ("Target",  target)
+            })
             {
                 var row = new Panel { Left = 24, Top = y, Width = 460, Height = 40, BackColor = Theme.BgApp };
                 row.Paint += (_, e) =>
@@ -293,8 +322,8 @@ namespace LanServer.Pages
                     using var pen = new Pen(Theme.Border, 1);
                     e.Graphics.DrawLine(pen, 0, row.Height - 1, row.Width, row.Height - 1);
                 };
-                var lbl = new Label { Text = label, Font = Theme.FontSm, ForeColor = Theme.TextSecond, AutoSize = true, Left = 12, Top = 12, BackColor = Color.Transparent };
-                var val2 = new Label { Text = val, Font = Theme.FontBold, ForeColor = Theme.TextPrimary, AutoSize = true, Left = 160, Top = 12, BackColor = Color.Transparent };
+                var lbl  = new Label { Text = label, Font = Theme.FontSm, ForeColor = Theme.TextSecond, AutoSize = true, Left = 12, Top = 12, BackColor = Color.Transparent };
+                var val2 = new Label { Text = val,   Font = Theme.FontBold, ForeColor = Theme.TextPrimary, AutoSize = true, Left = 160, Top = 12, BackColor = Color.Transparent };
                 row.Controls.AddRange(new Control[] { lbl, val2 });
                 p.Controls.Add(row);
                 y += 42;
@@ -308,24 +337,36 @@ namespace LanServer.Pages
             if (_step == 0 && _filePath == null) { ToastManager.Show("Please select a file first.", ToastKind.Warning); return; }
             if (_step < 2) { GoStep(_step + 1); return; }
 
-            // Execute deployment
             _nextBtn.Enabled = false;
             _nextBtn.Text = "Deploying...";
             Task.Run(() =>
             {
                 try
                 {
-                    var type    = _typeCombo?.SelectedItem?.ToString() ?? "NSIS";
-                    var targets = ClientManager.GetOnline().Select(c => c.Id).ToList();
+                    bool isInstaller = FileManager.IsInstaller(_filePath!);
+                    var type     = isInstaller ? (_typeCombo?.SelectedItem?.ToString() ?? "NSIS") : "Download";
+                    var targets  = ClientManager.GetOnline().Select(c => c.Id).ToList();
                     FileManager.SaveFile(_filePath!, type);
                     var fileName = Path.GetFileName(_filePath!);
                     var fileSize = new FileInfo(_filePath!).Length;
-                    var ip  = GetLocalIp();
-                    var url = $"http://{ip}:{Config.Current.HttpPort}/{Uri.EscapeDataString(fileName)}";
-                    if (targets.Any()) CommandDispatcher.IssueInstall(targets, fileName, type, url);
-                    AppState.AddDeployment(new DeploymentRecord { FileName = fileName, InstallerType = type, FileSize = fileSize, TargetIds = targets });
+                    var ip       = GetLocalIp();
+                    var url      = $"http://{ip}:{Config.Current.HttpPort}/{Uri.EscapeDataString(fileName)}";
+
+                    if (targets.Any())
+                    {
+                        if (isInstaller)
+                            CommandDispatcher.IssueInstall(targets, fileName, type, url);
+                        else
+                            CommandDispatcher.IssueDownload(targets, fileName, url);
+                    }
+
+                    AppState.AddDeployment(new DeploymentRecord
+                    {
+                        FileName = fileName, InstallerType = type,
+                        FileSize = fileSize, TargetIds = targets
+                    });
                     AppState.Log($"Deployed '{fileName}' [{type}] → {targets.Count} client(s)", LogLevel.Success);
-                    ToastManager.Show($"'{fileName}' deployed successfully.", ToastKind.Success);
+                    ToastManager.Show($"'{fileName}' sent to {targets.Count} client(s).", ToastKind.Success);
                     Invoke(Close);
                 }
                 catch (Exception ex)

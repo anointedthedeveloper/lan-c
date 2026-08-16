@@ -117,11 +117,12 @@ namespace LanServer.Pages
             };
             var typeLbl = new Label
             {
-                Text = "Installer Type",
+                Text = "Installer Type  (for .exe/.msi only)",
                 Font = Theme.FontSm,
                 ForeColor = Theme.TextSecond,
                 AutoSize = true,
-                Left = 0, Top = 8
+                Left = 0, Top = 8,
+                BackColor = Color.Transparent
             };
             _typeCombo = Theme.MakeCombo();
             _typeCombo.Items.AddRange(new[] { "NSIS", "Inno Setup", "MSI", "InstallShield" });
@@ -145,7 +146,7 @@ namespace LanServer.Pages
 
             _dropLabel = new Label
             {
-                Text = "⬆  Drag & drop your installer here",
+                Text = "⬆  Drag & drop any file here",
                 Font = Theme.FontBold,
                 ForeColor = Theme.Blue,
                 AutoSize = true,
@@ -153,7 +154,7 @@ namespace LanServer.Pages
             };
             _dropSub = new Label
             {
-                Text = "or click to browse",
+                Text = "or click to browse — all file types supported",
                 Font = Theme.FontSm,
                 ForeColor = Theme.TextSecond,
                 AutoSize = true,
@@ -209,7 +210,6 @@ namespace LanServer.Pages
             };
             actBody.Controls.Add(_recentLog);
             actCard.Controls.Add(actBody);
-            actCard.Controls.Add(actHdr);
             actCard.Controls.Add(actHdr);
 
             midRow.Controls.Add(deployCard, 0, 0);
@@ -394,7 +394,11 @@ namespace LanServer.Pages
 
         private void DropZone_Click(object? s, EventArgs e)
         {
-            using var dlg = new OpenFileDialog { Filter = "Installers|*.exe;*.msi|All files|*.*" };
+            using var dlg = new OpenFileDialog
+            {
+                Title  = "Select file to deploy",
+                Filter = "All Files (*.*)|*.*|Installers (*.exe;*.msi)|*.exe;*.msi"
+            };
             if (dlg.ShowDialog() == DialogResult.OK) SetPendingFile(dlg.FileName);
         }
 
@@ -417,6 +421,7 @@ namespace LanServer.Pages
         {
             if (_pendingFilePath == null) return;
             var type = _typeCombo.SelectedItem?.ToString() ?? "NSIS";
+            bool isInstaller = FileManager.IsInstaller(_pendingFilePath);
             _deployNowBtn.Enabled = false;
             _deployNowBtn.Text = "Deploying...";
 
@@ -424,7 +429,7 @@ namespace LanServer.Pages
             {
                 try
                 {
-                    FileManager.SaveFile(_pendingFilePath, type);
+                    FileManager.SaveFile(_pendingFilePath, isInstaller ? type : "Download");
                     var fileName = Path.GetFileName(_pendingFilePath);
                     var fileSize = new FileInfo(_pendingFilePath).Length;
                     var targets  = ClientManager.GetOnline().Select(c => c.Id).ToList();
@@ -432,15 +437,20 @@ namespace LanServer.Pages
                     var url      = $"http://{ip}:{Config.Current.HttpPort}/{Uri.EscapeDataString(fileName)}";
 
                     if (targets.Any())
-                        CommandDispatcher.IssueInstall(targets, fileName, type, url);
+                    {
+                        if (isInstaller)
+                            CommandDispatcher.IssueInstall(targets, fileName, type, url);
+                        else
+                            CommandDispatcher.IssueDownload(targets, fileName, url);
+                    }
 
                     AppState.AddDeployment(new DeploymentRecord
                     {
-                        FileName = fileName, InstallerType = type,
+                        FileName = fileName, InstallerType = isInstaller ? type : "Download",
                         FileSize = fileSize, TargetIds = targets
                     });
-                    AppState.Log($"Deployed '{fileName}' [{type}] → {targets.Count} client(s)", LogLevel.Success);
-                    ToastManager.Show($"'{fileName}' deployed successfully.", ToastKind.Success);
+                    AppState.Log($"Deployed '{fileName}' → {targets.Count} client(s)", LogLevel.Success);
+                    ToastManager.Show($"'{fileName}' sent to {targets.Count} client(s).", ToastKind.Success);
                 }
                 catch (Exception ex)
                 {
@@ -454,9 +464,9 @@ namespace LanServer.Pages
                         _deployNowBtn.Text = "▶  Deploy Now";
                         _deployNowBtn.Enabled = false;
                         _pendingFilePath = null;
-                        _dropLabel.Text = "⬆  Drag & drop your installer here";
+                        _dropLabel.Text = "⬆  Drag & drop any file here";
                         _dropLabel.ForeColor = Theme.Blue;
-                        _dropSub.Text = "or click to browse";
+                        _dropSub.Text = "or click to browse — all file types supported";
                         _dropSub.ForeColor = Theme.TextSecond;
                         CenterDropLabels();
                     });

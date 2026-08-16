@@ -6,15 +6,11 @@ namespace LanServer.Controls
 {
     public class PageHeader : Panel
     {
-        private readonly Label _statusLabel;
-        private readonly TextBox _urlBox;
-
         public PageHeader(string title, string subtitle = "")
         {
             Dock = DockStyle.Top;
-            Height = 76;
+            Height = 68;
             BackColor = Theme.BgCard;
-            Padding = new Padding(24, 0, 24, 0);
 
             Paint += (_, e) =>
             {
@@ -22,62 +18,80 @@ namespace LanServer.Controls
                 e.Graphics.DrawLine(pen, 0, Height - 1, Width, Height - 1);
             };
 
+            // Left: title + subtitle
             var titleLbl = new Label
             {
                 Text = title,
                 Font = Theme.FontLg,
                 ForeColor = Theme.TextPrimary,
                 AutoSize = true,
-                Left = 24, Top = 16,
+                Left = 24, Top = 12,
                 BackColor = Color.Transparent
             };
-
             var subLbl = new Label
             {
                 Text = subtitle,
                 Font = Theme.FontSm,
                 ForeColor = Theme.TextSecond,
                 AutoSize = true,
-                Left = 24, Top = 44,
+                Left = 24, Top = 40,
                 BackColor = Color.Transparent
             };
 
-            // Right side: copyable URL box + copy button + status
+            // Right container — flows right-to-left using anchoring on SizeChanged
             var ip = GetLocalIp();
             var url = $"http://{ip}:{Config.Current.HttpPort}";
 
-            _urlBox = new TextBox
+            // Status pill
+            var statusPill = new Panel
             {
-                Text = url,
-                Font = Theme.FontSm,
-                BackColor = Theme.BgApp,
-                ForeColor = Theme.TextSecond,
-                BorderStyle = BorderStyle.FixedSingle,
-                ReadOnly = true,
-                Width = 220,
-                Height = 24,
-                Top = 16,
-                Cursor = Cursors.IBeam
+                Height = 26, Width = 110,
+                BackColor = Theme.GreenSoft,
+                Top = 21
             };
-            _urlBox.Click += (_, _) => { _urlBox.SelectAll(); };
+            statusPill.Paint += (_, e) =>
+            {
+                using var pen = new Pen(Color.FromArgb(80, Theme.Green.R, Theme.Green.G, Theme.Green.B), 1);
+                e.Graphics.DrawRectangle(pen, 0, 0, statusPill.Width - 1, statusPill.Height - 1);
+            };
+            var statusDot = new Label
+            {
+                Text = "●",
+                Font = new Font("Segoe UI", 7f),
+                ForeColor = Theme.Green,
+                AutoSize = true,
+                Left = 8, Top = 6,
+                BackColor = Color.Transparent
+            };
+            var statusLbl = new Label
+            {
+                Text = "Connected",
+                Font = new Font("Segoe UI", 8f, FontStyle.Bold),
+                ForeColor = Theme.Green,
+                AutoSize = true,
+                Left = 22, Top = 5,
+                BackColor = Color.Transparent
+            };
+            statusPill.Controls.AddRange(new Control[] { statusDot, statusLbl });
 
+            // Copy button
             var copyBtn = new Button
             {
                 Text = "⎘",
                 Font = new Font("Segoe UI", 9f),
-                BackColor = Theme.BgApp,
+                BackColor = Theme.BgCard,
                 ForeColor = Theme.TextSecond,
                 FlatStyle = FlatStyle.Flat,
-                Width = 28, Height = 24,
-                Top = 16,
+                Width = 30, Height = 26,
+                Top = 21,
                 Cursor = Cursors.Hand,
                 FlatAppearance = { BorderSize = 1, BorderColor = Theme.Border }
             };
             copyBtn.MouseEnter += (_, _) => { copyBtn.BackColor = Theme.BgHover; copyBtn.ForeColor = Theme.Blue; };
-            copyBtn.MouseLeave += (_, _) => { copyBtn.BackColor = Theme.BgApp;   copyBtn.ForeColor = Theme.TextSecond; };
+            copyBtn.MouseLeave += (_, _) => { copyBtn.BackColor = Theme.BgCard; copyBtn.ForeColor = Theme.TextSecond; };
             copyBtn.Click += (_, _) =>
             {
-                Clipboard.SetText(_urlBox.Text);
+                Clipboard.SetText(url);
                 copyBtn.Text = "✓";
                 copyBtn.ForeColor = Theme.Green;
                 var t = new System.Windows.Forms.Timer { Interval = 1500 };
@@ -85,9 +99,23 @@ namespace LanServer.Controls
                 t.Start();
             };
 
+            // URL label (not a TextBox — avoids focus/border issues)
+            var urlLbl = new Label
+            {
+                Text = url,
+                Font = Theme.FontSm,
+                ForeColor = Theme.Blue,
+                AutoSize = true,
+                Top = 26,
+                BackColor = Color.Transparent,
+                Cursor = Cursors.Hand
+            };
+            urlLbl.Click += (_, _) => { Clipboard.SetText(url); };
+
+            // Port info label
             var infoLbl = new Label
             {
-                Text = $"{ip}   WS:{Config.Current.WebSocketPort}   HTTP:{Config.Current.HttpPort}",
+                Text = $"WS:{Config.Current.WebSocketPort}  HTTP:{Config.Current.HttpPort}  UDP:{Config.Current.UdpPort}",
                 Font = Theme.FontSm,
                 ForeColor = Theme.TextMuted,
                 AutoSize = true,
@@ -95,28 +123,20 @@ namespace LanServer.Controls
                 BackColor = Color.Transparent
             };
 
-            _statusLabel = new Label
+            Controls.AddRange(new Control[] { titleLbl, subLbl, statusPill, copyBtn, urlLbl, infoLbl });
+
+            // Position right-aligned on every resize
+            SizeChanged += (_, _) => LayoutRight();
+            LayoutRight();
+
+            void LayoutRight()
             {
-                Text = "● Connected",
-                Font = Theme.FontSm,
-                ForeColor = Theme.Green,
-                AutoSize = true,
-                Top = 44,
-                BackColor = Color.Transparent
-            };
-
-            SizeChanged += (_, _) => PositionRight(infoLbl, copyBtn);
-
-            Controls.AddRange(new Control[] { titleLbl, subLbl, _urlBox, copyBtn, infoLbl, _statusLabel });
-            PositionRight(infoLbl, copyBtn);
-        }
-
-        private void PositionRight(Label infoLbl, Button copyBtn)
-        {
-            _statusLabel.Left = Width - _statusLabel.Width - 24;
-            infoLbl.Left = Width - infoLbl.Width - 24;
-            copyBtn.Left = Width - copyBtn.Width - 24;
-            _urlBox.Left = copyBtn.Left - _urlBox.Width - 4;
+                int right = Width - 20;
+                statusPill.Left = right - statusPill.Width;
+                copyBtn.Left    = statusPill.Left - copyBtn.Width - 8;
+                urlLbl.Left     = copyBtn.Left - urlLbl.Width - 8;
+                infoLbl.Left    = right - infoLbl.Width;
+            }
         }
 
         private static string GetLocalIp()

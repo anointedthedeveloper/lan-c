@@ -6,8 +6,8 @@ namespace LanServer
 {
     public class UdpBeacon
     {
-        private UdpClient? _udp;
         private bool _running;
+        private UdpClient? _listener;
 
         public void Start()
         {
@@ -19,41 +19,58 @@ namespace LanServer
         public void Stop()
         {
             _running = false;
-            _udp?.Close();
+            try { _listener?.Close(); } catch { }
         }
 
+        // Broadcast beacon every 2 s so clients passively receive it
         private async Task BroadcastLoop()
         {
             using var sender = new UdpClient();
             sender.EnableBroadcast = true;
             var endpoint = new IPEndPoint(IPAddress.Broadcast, Config.Current.UdpPort);
-            var msg = Encoding.UTF8.GetBytes($"LANC_SERVER:{Config.Current.WebSocketPort}:{Config.Current.HttpPort}");
 
             while (_running)
             {
-                try { await sender.SendAsync(msg, msg.Length, endpoint); }
+                try
+                {
+                    // Refresh message each iteration in case config changed
+                    var msg = Encoding.UTF8.GetBytes(
+                        $"LANC_SERVER:{Config.Current.WebSocketPort}:{Config.Current.HttpPort}");
+                    await sender.SendAsync(msg, msg.Length, endpoint);
+                }
                 catch { }
                 await Task.Delay(2000);
             }
         }
 
+        // Reply to active LANC_DISCOVER probes from clients
         private async Task ListenLoop()
         {
-            _udp = new UdpClient(Config.Current.UdpPort);
-            while (_running)
+            try
             {
-                try
+                _listener = new UdpClient();
+                _listener.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                _listener.Client.Bind(new IPEndPoint(IPAddress.Any, Config.Current.UdpPort));
+                _listener.EnableBroadcast = true;
+
+                while (_running)
                 {
-                    var result = await _udp.ReceiveAsync();
-                    var msg = Encoding.UTF8.GetString(result.Buffer);
-                    if (msg == "LANC_DISCOVER")
+                    try
                     {
-                        var reply = Encoding.UTF8.GetBytes($"LANC_SERVER:{Config.Current.WebSocketPort}:{Config.Current.HttpPort}");
-                        await _udp.SendAsync(reply, reply.Length, result.RemoteEndPoint);
+                        var result = await _listener.ReceiveAsync();
+                        var msg = Encoding.UTF8.GetString(result.Buffer);
+                        if (msg == "LANC_DISCOVER")
+                        {
+                            var reply = Encoding.UTF8.GetBytes(
+                                $"LANC_SERVER:{Config.Current.WebSocketPort}:{Config.Current.HttpPort}");
+                            await _listener.SendAsync(reply, reply.Length, result.RemoteEndPoint);
+                        }
                     }
+                    catch (SocketException) when (!_running) { break; }
+                    catch { }
                 }
-                catch { }
             }
+            catch { }
         }
     }
 }
