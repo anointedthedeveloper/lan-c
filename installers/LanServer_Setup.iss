@@ -28,6 +28,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
 Source: "..\LanServerExe\LanServer.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\LanServerExe\Assets\*"; DestDir: "{app}\Assets"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{autodesktop}\LanC Server"; Filename: "{app}\{#AppExe}"

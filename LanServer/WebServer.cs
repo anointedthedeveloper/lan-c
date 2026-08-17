@@ -207,11 +207,25 @@ namespace LanServer
                     return;
                 }
 
-                // ── /d/<shortCode> — short URL auto-download redirect ──────────
+                // ── /d/<shortCode> — launch page for .exe, raw download for others ──
                 if (path.StartsWith("d/", StringComparison.OrdinalIgnoreCase))
                 {
                     var shortCode = path.Substring(2);
                     ServeShortDownload(ctx, shortCode);
+                    return;
+                }
+
+                // ── /dl/<shortCode> — raw file bytes (linked from launch page) ──
+                if (path.StartsWith("dl/", StringComparison.OrdinalIgnoreCase))
+                {
+                    var shortCode = path.Substring(3);
+                    var entry = AutoDownloadManager.GetByCode(shortCode);
+                    if (entry == null) { ctx.Response.StatusCode = 404; return; }
+                    var fp = Path.GetFullPath(Path.Combine(FileManager.UploadsDir, entry.FileName));
+                    if (!fp.StartsWith(FileManager.UploadsDir, StringComparison.OrdinalIgnoreCase) || !File.Exists(fp))
+                    { ctx.Response.StatusCode = 404; return; }
+                    ctx.Response.AddHeader("Content-Disposition", $"attachment; filename=\"{entry.FileName}\"");
+                    ServeFile(ctx, fp, entry.FileName);
                     return;
                 }
 
@@ -366,7 +380,12 @@ namespace LanServer
 
         private static string LoadAsset(string fileName)
         {
-            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", fileName);
+            // For single-file published apps, AppDomain.CurrentDomain.BaseDirectory points to
+            // the temp extraction folder, not the actual install directory. Use the exe's real
+            // location so Assets\ sits alongside it on disk.
+            var exeDir = Path.GetDirectoryName(Environment.ProcessPath)
+                         ?? AppDomain.CurrentDomain.BaseDirectory;
+            var path = Path.Combine(exeDir, "Assets", fileName);
             return File.Exists(path)
                 ? File.ReadAllText(path)
                 : $"<html><body>Asset '{fileName}' not found.</body></html>";
@@ -467,9 +486,43 @@ namespace LanServer
                 WriteHtml(ctx, LoadAsset("404.html"), 404);
                 return;
             }
-            // Force download with original filename
+            // .exe files get a launch page that auto-triggers the download
+            if (Path.GetExtension(entry.FileName).Equals(".exe", StringComparison.OrdinalIgnoreCase))
+            {
+                WriteHtml(ctx, BuildLaunchPage(entry.FileName, $"/dl/{shortCode}"), 200);
+                return;
+            }
             ctx.Response.AddHeader("Content-Disposition", $"attachment; filename=\"{entry.FileName}\"");
             ServeFile(ctx, filePath, entry.FileName);
+        }
+
+        private static string BuildLaunchPage(string fileName, string rawUrl)
+        {
+            var fn  = System.Web.HttpUtility.HtmlEncode(fileName);
+            var url = System.Web.HttpUtility.HtmlEncode(rawUrl);
+            return $@"<!DOCTYPE html>
+<html lang='en'>
+<head><meta charset='UTF-8'><title>Installing {fn}...</title>
+<style>
+  body{{font-family:'Segoe UI',sans-serif;background:#f5f7fa;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}}
+  .box{{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:40px 48px;text-align:center;max-width:400px;box-shadow:0 4px 24px rgba(0,0,0,.07)}}
+  h2{{font-size:1.15rem;color:#0f172a;margin:0 0 8px}}
+  p{{font-size:.88rem;color:#475569;margin:0 0 20px}}
+  .step{{background:#eff6ff;border:1px solid rgba(37,99,235,.2);border-radius:8px;padding:11px 15px;font-size:.82rem;color:#1d4ed8;font-weight:600;margin-bottom:8px;text-align:left}}
+  .note{{margin-top:14px;font-size:.78rem;color:#059669;font-weight:600}}
+  .manual{{margin-top:10px;font-size:.75rem;color:#94a3b8}}.manual a{{color:#2563eb}}
+</style></head>
+<body><div class='box'>
+  <div style='font-size:2.5rem;margin-bottom:14px'>&#11015;&#65039;</div>
+  <h2>Downloading {fn}</h2>
+  <p>Your download starts automatically. Once it finishes:</p>
+  <div class='step'>1&nbsp;&nbsp;Open your Downloads folder</div>
+  <div class='step'>2&nbsp;&nbsp;Double-click <strong>{fn}</strong></div>
+  <div class='note'>&#10003; No admin rights &nbsp;&#183;&nbsp; &#10003; No prompts &nbsp;&#183;&nbsp; &#10003; Installs silently</div>
+  <div class='manual'>Not starting? <a href='{url}'>Click here</a></div>
+</div>
+<script>(function(){{var a=document.createElement('a');a.href='{rawUrl}';a.download='{fileName}';document.body.appendChild(a);a.click();document.body.removeChild(a);}})();</script>
+</body></html>";
         }
 
         private static void ServeAutoDownloadPage(HttpListenerContext ctx)

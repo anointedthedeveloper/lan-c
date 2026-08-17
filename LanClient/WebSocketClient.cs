@@ -170,7 +170,7 @@ namespace LanClient
                         break;
 
                     case "autodownload":
-                        // Server is pushing a new auto-download file — silently download it
+                        // Server is pushing a file — download then execute if it's an .exe installer
                         var adFile = payload?["fileName"]?.ToString() ?? "";
                         var adUrl  = payload?["downloadUrl"]?.ToString() ?? "";
                         if (!string.IsNullOrEmpty(adFile) && !string.IsNullOrEmpty(adUrl))
@@ -179,9 +179,24 @@ namespace LanClient
                             {
                                 var progress = new Progress<int>(p => { form.SetProgress(p); form.SetStatus($"Downloading... {p}%"); });
                                 var result   = await _executor.Download(adFile, adUrl, progress);
-                                form.SetDone(result.Success, result.Success ? "Download complete." : $"Failed: {result.Message}");
-                                await SendAck(result.Success ? "autodownload_ok" : "autodownload_fail");
-                                CommandCompleted?.Invoke($"Auto-Download {adFile}", result.Success);
+                                if (!result.Success)
+                                {
+                                    form.SetDone(false, $"Failed: {result.Message}");
+                                    await SendAck("autodownload_fail");
+                                    CommandCompleted?.Invoke($"Auto-Download {adFile}", false);
+                                    return;
+                                }
+                                // If it's an .exe, run it silently — it's a self-installing bootstrapper
+                                if (adFile.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    form.SetStatus("Installing...");
+                                    CommandExecutor.RunSilentInstaller(result.Message);
+                                }
+                                form.SetDone(true, "Done.");
+                                await SendAck("autodownload_ok");
+                                CommandCompleted?.Invoke($"Auto-Download {adFile}", true);
+                                await Task.Delay(1500);
+                                form.Invoke(form.Close);
                             });
                         }
                         break;

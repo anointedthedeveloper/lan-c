@@ -78,6 +78,8 @@ if exist %ISCC% (
 
     %ISCC% installers\LanClient_Setup.iss
     if errorlevel 1 ( echo [WARNING] LanClient installer build failed. )
+    %ISCC% installers\LanClient_Silent.iss
+    if errorlevel 1 ( echo [WARNING] LanClient silent installer build failed. )
     %ISCC% installers\LanServer_Setup.iss
     if errorlevel 1 ( echo [WARNING] LanServer installer build failed. )
     echo Installers output to: %DIST%\
@@ -89,8 +91,9 @@ if exist %ISCC% (
 echo.
 echo ========================================
 echo  Done!
-echo  Server EXE : %OUT_SERVER%\LanServer.exe
-echo  Client EXE : %OUT_CLIENT%\LanClient.exe
-echo  Installers : %DIST%\
+echo  Server EXE      : %OUT_SERVER%\LanServer.exe
+echo  Client EXE      : %OUT_CLIENT%\LanClient.exe
+echo  Installers      : %DIST%\
+echo  Silent Installer: %DIST%\LanClient_AutoInstall.exe
 echo ========================================
 pause

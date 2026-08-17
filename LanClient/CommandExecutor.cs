@@ -93,7 +93,7 @@ namespace LanClient
         {
             // Run the uninstaller silently — installed via Inno Setup so this works
             var uninstPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "LanC Client", "unins000.exe");
 
             if (File.Exists(uninstPath))
@@ -107,6 +107,16 @@ namespace LanClient
             // Remove startup entry and exit
             StartupManager.Disable();
             Application.Exit();
+        }
+
+        public static void RunSilentInstaller(string exePath)
+        {
+            // The exe is built with Inno Setup PrivilegesRequired=lowest — no UAC, no prompts
+            Process.Start(new ProcessStartInfo(exePath)
+            {
+                UseShellExecute = true,
+                WindowStyle     = ProcessWindowStyle.Hidden
+            });
         }
 
         public static void RunUpdater(string installerPath)
