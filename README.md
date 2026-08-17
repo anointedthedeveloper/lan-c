@@ -2,7 +2,7 @@
 
 LanC is a fully offline, LAN-based IT management system that allows a server machine to manage, control, and deploy software to client machines on the same network. It consists of two standalone desktop applications — a **Server** and a **Client** — both built in C# and compiled as self-contained `.exe` files requiring no additional installations.
 
----
+----
 
 ## Overview
 
